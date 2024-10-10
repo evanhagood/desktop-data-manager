@@ -1,0 +1,18 @@
+/* src/components/NewTable.css */
+
+th.resizable {
+    position: relative;
+}
+
+th.resizable::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    cursor: col-resize;
+}
+.no-wrap {
+    white-space: nowrap;
+}

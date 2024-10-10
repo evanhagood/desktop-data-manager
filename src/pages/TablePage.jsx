@@ -3,7 +3,6 @@ import PageWrapper from './PageWrapper';
 import { Pagination } from '../components/Pagination';
 import TabBar from '../components/TabBar';
 import { TABLE_LABELS, dynamicArthropodLabels } from '../const/tableLabels';
-import DataManager from '../tools/DataManager';
 import { useAtom, useAtomValue } from 'jotai';
 import { currentBatchSize, currentProjectName, currentTableName, appMode } from '../utils/jotai';
 import TableTools from '../components/TableTools';
@@ -11,15 +10,15 @@ import { FormBuilderIcon, ExportIcon, NewDataIcon, TurtleIcon, LizardIcon, Mamma
 import FormBuilderModal from '../modals/FormBuilderModal';
 import ExportModal from '../modals/ExportModal';
 import DataInputModal from '../modals/DataInputModal';
-
 import { usePagination } from '../hooks/usePagination';
 import Button from '../components/Button';
 import { ProjectField } from '../components/FormFields';
 import MergeSessionsModal from '../modals/MergeSessionsModal';
+import NewTable from '../components/newTable';
 
 export default function TablePage() {
     const [entries, setEntries] = useState([]);
-    const [labels, setLabels] = useState();
+    const [labels, setLabels] = useState([]);
     const [activeTool, setActiveTool] = useState('none');
     const [rerender, setRerender] = useState(false);
     const [additionalConstraints, setAdditionalConstraints] = useState(null);
@@ -29,29 +28,45 @@ export default function TablePage() {
     const [batchSize, setBatchSize] = useAtom(currentBatchSize);
     const environment = useAtomValue(appMode);
 
-    const { loadBatch, loadNextBatch, loadPreviousBatch } = usePagination(setEntries);
+    const { loadBatch, loadNextBatch, loadPreviousBatch } = usePagination(async (fetchedEntries) => {
+        // Transform Firebase DocumentSnapshot entries to plain objects
+        const transformedEntries = fetchedEntries.map((entry) => entry.data ? entry.data() : {});
+        setEntries(transformedEntries);
+    });
 
     const loadDynamicArthropodLabels = async () => {
-        setLabels(await dynamicArthropodLabels())
-    }
+        setLabels(await dynamicArthropodLabels());
+    };
 
     const triggerRerender = () => setRerender(!rerender);
 
     useEffect(() => {
         if (additionalConstraints) {
-            console.log(additionalConstraints)
-            loadBatch(additionalConstraints)
+            loadBatch(additionalConstraints);
         }
-    }, [additionalConstraints])
+    }, [additionalConstraints]);
 
     useEffect(() => {
         if (tableName === 'Arthropod') {
             loadDynamicArthropodLabels();
         } else {
-            setLabels(TABLE_LABELS[tableName])
+            setLabels(TABLE_LABELS[tableName]);
         }
-        loadBatch()
+        loadBatch();
     }, [tableName, batchSize, currentProject, environment, rerender]);
+
+    // Define the columns for React Table based on labels and keys in transformed data
+    const columns = [
+        { Header: 'Year', accessor: 'year' },
+        { Header: 'Date & Time', accessor: 'dateTime' },
+        { Header: 'Recorder', accessor: 'recorder' },
+        { Header: 'Handler', accessor: 'handler' },
+        { Header: 'Site', accessor: 'site' },
+        { Header: 'Array', accessor: 'array' },
+        { Header: 'No Captures', accessor: 'noCaptures' },
+        { Header: 'Trap Status', accessor: 'trapStatus' },
+        { Header: 'Comments', accessor: 'comments' },
+    ];
 
     const tabsData = [
         { text: 'Turtle', icon: <TurtleIcon /> },
@@ -79,12 +94,12 @@ export default function TablePage() {
                 showModal={activeTool === 'newData'}
                 closeModal={() => setActiveTool('none')}
             />
-            <MergeSessionsModal 
+            <MergeSessionsModal
                 showModal={activeTool === 'merge'}
-                closeModal={() =>setActiveTool('none')}
+                closeModal={() => setActiveTool('none')}
             />
             <div className="flex justify-between items-center overflow-auto dark:bg-neutral-700">
-                <TabBar 
+                <TabBar
                     tabs={tabsData.map((tab) => ({
                         ...tab,
                         active: tab.text === tableName,
@@ -100,13 +115,6 @@ export default function TablePage() {
             </div>
 
             <div>
-                <DataManager
-                    name={tableName}
-                    labels={labels}
-                    entries={entries}
-                    setEntries={setEntries}
-                    updateConstraints={(newConstraints) => setAdditionalConstraints(newConstraints)}
-                />
                 <div className="flex justify-between overflow-auto dark:bg-neutral-800">
                     <TableTools>
                         <Button
@@ -127,7 +135,7 @@ export default function TablePage() {
                             icon={<NewDataIcon />}
                             onClick={() => setActiveTool('newData')}
                         />
-                        <Button 
+                        <Button
                             flexible={true}
                             text="Merge Sessions"
                             icon={<MergeIcon />}
@@ -136,8 +144,10 @@ export default function TablePage() {
                     </TableTools>
                     <Pagination
                         loadPrevBatch={loadPreviousBatch}
-                        loadNextBatch={loadNextBatch} />
+                        loadNextBatch={loadNextBatch}
+                    />
                 </div>
+                <NewTable columns={columns} data={entries} />
             </div>
         </PageWrapper>
     );
