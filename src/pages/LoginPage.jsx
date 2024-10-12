@@ -1,10 +1,35 @@
 import Button from "../components/Button";
 import { GoogleIcon, LizardIcon } from "../assets/icons";
 import PageWrapper from "./PageWrapper";
+import { getAnalytics, logEvent } from 'firebase/analytics';  // Import firebase analytics
 
 export default function LoginPage({ auth }) {
     const LOADING_MESSAGE = 'Loading Google\'s authentication.';
     const LOGIN_MESSAGE = 'Click login to sign in with your ASURITE ID.';
+
+    const analytics = getAnalytics();  // Access firebase analytics
+
+    // Function to log login event
+    const logAnalyticsEvent = (user) => {
+        logEvent(analytics, 'login', {
+            method: 'Google',
+            email: user.email,
+            uid: user.uid
+        });
+    };
+
+    // Handle login and log event
+    const handleLogin = async () => {
+        try {
+            await auth.login();  // Execute login function
+            const user = auth.currentUser; 
+            if (user && user.email.slice(-7) === 'asu.edu') {
+                logAnalyticsEvent(user); // Log it in firebase
+            }
+        } catch (error) {
+            console.error('Login failed:', error);
+        }
+    };
 
     return (
         <PageWrapper>
