@@ -42,6 +42,31 @@ export class Authenticator {
         return await this.validateUser();
     }
 
+    async authorizeUser(password) {
+        const correctPassword = 'lizard';  // Set a secure password here (can be environment variable)
+
+        // Check if the provided password is correct
+        if (password !== correctPassword) {
+            throw new Error('Incorrect password');
+        }
+
+        // If the password is correct, add the user to the database
+        const email = this.user.email;
+        const name = this.user.displayName;
+
+        await setDoc(doc(this.db, 'authorized_users', email), {
+            email,
+            name,
+            date_added: new Date(),
+        });
+
+        this.isAuthorized = true;
+        this.passwordRequired = false;
+    }
+}
+
+
+
     logout() {
         signOut(auth).then(() => {
             // Clear cookies
