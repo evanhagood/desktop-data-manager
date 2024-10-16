@@ -1,81 +1,84 @@
+import { auth } from './firebase';
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth } from './firebase';  // Your Firebase config
+import { getFirestore, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+
+// Initialize Firestore
+const db = getFirestore();
 
 export class Authenticator {
     constructor() {
-        this.db = getFirestore();  // Initialize Firestore
-        this.isAuthorized = false;
-        this.passwordRequired = false;
+        this.user = null; // Will hold the current user after login
     }
 
-    // Validate if the user is in the Firestore authorized_users collection
-    async validateUser(user) {
-        if (!user) return false;
+    // Check if the user is already authorized in Firestore
+    async isAuthorizedUser(email) {
+        const authorizedUsersRef = collection(db, 'authorized_users');
+        const q = query(authorizedUsersRef, where('email', '==', email));
+        const querySnapshot = await getDocs(q);
+        return !querySnapshot.empty; // True if user exists in the collection
+    }
 
-        const email = user.email;
+    // Add a new user to the 'authorized_users' collection in Firestore
+    async addUserToDatabase(email) {
+        const authorizedUsersRef = collection(db, 'authorized_users');
+        await addDoc(authorizedUsersRef, { email });
+    }
 
-        // Step 1: Check if the user's email is from ASU
-        if (email.slice(-7) !== 'asu.edu') {
-            this.isAuthorized = false;
-            return false;  // User is not using an ASU email
-        }
-
-        // Step 2: Check if the user's email exists in Firestore's authorized_users collection
-        const userRef = doc(this.db, 'authorized_users', email);  // Reference to the user document in Firestore
-        const userSnap = await getDoc(userRef);
-
-        if (userSnap.exists()) {
-            this.isAuthorized = true;
-            this.passwordRequired = false;
-            return true;  // User exists in the database and has an ASU email
+    // Prompt the user for a password to register them in the database
+    async promptForPassword() {
+        const password = window.prompt('Enter the registration password:');
+        if (password === 'lizard') {
+            return true; // Password matches
         } else {
-            this.isAuthorized = false;
-            this.passwordRequired = true;  // User not found in the database, password is required
+            alert('Invalid password. You are not authorized.');
             return false;
         }
     }
 
-    // Handle Google login
+    // Login method with user validation
     async login() {
         const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });  // Force account selection
-        await signInWithPopup(auth, provider);
-    }
+        provider.setCustomParameters({ prompt: 'select_account' });
 
-    // Add user to Firestore's authorized_users collection with password validation
-    async authorizeUser(user, password) {
-        const correctPassword = 'lizard';  // Set a secure password here
+        try {
+            const result = await signInWithPopup(auth, provider);
+            this.user = result.user; // Assign the logged-in user
 
-        // Check if the provided password is correct
-        if (password !== correctPassword) {
-            throw new Error('Incorrect password');
+            const email = this.user.email;
+            const isAuthorized = await this.isAuthorizedUser(email);
+
+            if (!isAuthorized) {
+                const passwordCorrect = await this.promptForPassword();
+                if (passwordCorrect) {
+                    await this.addUserToDatabase(email); // Register the user
+                    alert('You have been registered successfully!');
+                } else {
+                    await this.logout(); // Logout if password is incorrect
+                    return false;
+                }
+            }
+
+            console.log('User successfully logged in and validated:', email);
+            return true; // Successful login
+        } catch (error) {
+            console.error('Login failed:', error);
+            return false;
         }
-
-        // If the password is correct, add the user to the database
-        const email = user.email;
-        const name = user.displayName;
-
-        await setDoc(doc(this.db, 'authorized_users', email), {
-            email,
-            name,
-            date_added: new Date(),
-        });
-
-        this.isAuthorized = true;
-        this.passwordRequired = false;
     }
 
-    // Handle logout
-    logout() {
-        signOut(auth).then(() => {
+    // Logout function to clear cookies and local storage
+    async logout() {
+        try {
+            await signOut(auth);
             document.cookie.split(';').forEach((c) => {
                 document.cookie = c
                     .replace(/^ +/, '')
                     .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
             });
             localStorage.clear();
-            window.location.href = '/login';
-        });
+            window.location.href = '/login'; // Redirect to login page
+        } catch (error) {
+            console.error('Logout failed:', error);
+        }
     }
 }
