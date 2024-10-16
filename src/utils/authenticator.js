@@ -1,18 +1,19 @@
-import { auth } from './firebase';
-import { useAuthState } from 'react-firebase-hooks/auth';
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth } from './firebase';  // Your Firebase config
 
 export class Authenticator {
     constructor() {
-        [this.user, this.loading, this.error] = useAuthState(auth);
         this.db = getFirestore();  // Initialize Firestore
         this.isAuthorized = false;
         this.passwordRequired = false;
     }
-    async validateUser() {
-        if (!this.user) return false;
 
-        const email = this.user.email;
+    // Validate if the user is in the Firestore authorized_users collection
+    async validateUser(user) {
+        if (!user) return false;
+
+        const email = user.email;
 
         // Step 1: Check if the user's email is from ASU
         if (email.slice(-7) !== 'asu.edu') {
@@ -35,15 +36,16 @@ export class Authenticator {
         }
     }
 
-    login() {
+    // Handle Google login
+    async login() {
         const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' }); // Force account selection
-        signInWithPopup(auth, provider);
-        return await this.validateUser();
+        provider.setCustomParameters({ prompt: 'select_account' });  // Force account selection
+        await signInWithPopup(auth, provider);
     }
 
-    async authorizeUser(password) {
-        const correctPassword = 'lizard';  // Set a secure password here (can be environment variable)
+    // Add user to Firestore's authorized_users collection with password validation
+    async authorizeUser(user, password) {
+        const correctPassword = 'lizard';  // Set a secure password here
 
         // Check if the provided password is correct
         if (password !== correctPassword) {
@@ -51,8 +53,8 @@ export class Authenticator {
         }
 
         // If the password is correct, add the user to the database
-        const email = this.user.email;
-        const name = this.user.displayName;
+        const email = user.email;
+        const name = user.displayName;
 
         await setDoc(doc(this.db, 'authorized_users', email), {
             email,
@@ -64,22 +66,16 @@ export class Authenticator {
         this.passwordRequired = false;
     }
 
-
-
-
+    // Handle logout
     logout() {
         signOut(auth).then(() => {
-            // Clear cookies
             document.cookie.split(';').forEach((c) => {
                 document.cookie = c
                     .replace(/^ +/, '')
                     .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
             });
-            // Clear local storage
             localStorage.clear();
-            // Redirect to login page or homepage
             window.location.href = '/login';
         });
-        return !this.user;
     }
 }
