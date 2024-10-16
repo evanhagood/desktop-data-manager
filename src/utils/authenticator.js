@@ -63,7 +63,7 @@ export class Authenticator {
         this.isAuthorized = true;
         this.passwordRequired = false;
     }
-}
+
 
 
 
