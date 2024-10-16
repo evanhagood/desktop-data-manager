@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import PageWrapper from './PageWrapper';
 import { Pagination } from '../components/Pagination';
 import TabBar from '../components/TabBar';
-import { TABLE_LABELS, dynamicArthropodLabels } from '../const/tableLabels';
 import { useAtom, useAtomValue } from 'jotai';
 import { currentBatchSize, currentProjectName, currentTableName, appMode } from '../utils/jotai';
 import TableTools from '../components/TableTools';
@@ -14,14 +13,22 @@ import { usePagination } from '../hooks/usePagination';
 import Button from '../components/Button';
 import { ProjectField } from '../components/FormFields';
 import MergeSessionsModal from '../modals/MergeSessionsModal';
-import NewTable from '../components/newTable';
+import Table from '../components/Table';
+
+// Define field mappings based on page type
+const FIELD_MAPPINGS = {
+    Turtle: ["year", "dateTime", "site", "array", "fenceTrap", "taxa", "speciesCode", "genus", "massG", "sex", "dead", "comments"],
+    Lizard: ["year", "dateTime", "site", "array", "fenceTrap", "taxa", "speciesCode", "genus", "species", "toeClipCode", "recapture", "svlMm", "vtlMm", "regenTail", "otlMm", "hatchling", "massG", "sex", "dead", "comments"],
+    Mammal: ["year", "dateTime", "site", "array", "fenceTrap", "taxa", "speciesCode", "genus", "species", "massG", "sex", "dead", "comments"],
+    Snake: ["year", "dateTime", "site", "array", "fenceTrap", "taxa", "speciesCode", "genus", "svlMm", "vtlMm", "massG", "sex", "dead", "comments"],
+    Anthropod: ["year", "dateTime", "site", "array", "predator", "aran", "auch", "blat", "chil", "cole", "crus", "derm", "diel", "dipt", "hete", "hyma", "hymb", "lepi", "mant", "orth", "pseu", "scor", "soli", "thys", "unki", "micro", "comments"],
+    Amphibian: ["year", "dateTime", "site", "array", "fenceTrap", "taxa", "speciesCode", "genus", "massG", "sex", "dead", "comments"]
+};
 
 export default function TablePage() {
     const [entries, setEntries] = useState([]);
-    const [labels, setLabels] = useState([]);
     const [activeTool, setActiveTool] = useState('none');
     const [rerender, setRerender] = useState(false);
-    const [additionalConstraints, setAdditionalConstraints] = useState(null);
 
     const [currentProject, setCurrentProject] = useAtom(currentProjectName);
     const [tableName, setTableName] = useAtom(currentTableName);
@@ -29,48 +36,34 @@ export default function TablePage() {
     const environment = useAtomValue(appMode);
 
     const { loadBatch, loadNextBatch, loadPreviousBatch } = usePagination(async (fetchedEntries) => {
-        // Transform Firebase DocumentSnapshot entries to plain objects
-        const transformedEntries = fetchedEntries.map((entry) => entry.data ? entry.data() : {});
+        const transformedEntries = fetchedEntries.map((entry) => {
+            const data = entry.data ? entry.data() : {};
+            return {
+                ...Object.fromEntries(
+                    Object.entries(data).map(([key, value]) => [key, value !== undefined && value !== null ? value.toString() : "N/A"])
+                )
+            };
+        });
+
         setEntries(transformedEntries);
     });
 
-    const loadDynamicArthropodLabels = async () => {
-        setLabels(await dynamicArthropodLabels());
-    };
-
-    const triggerRerender = () => setRerender(!rerender);
-
     useEffect(() => {
-        if (additionalConstraints) {
-            loadBatch(additionalConstraints);
-        }
-    }, [additionalConstraints]);
-
-    useEffect(() => {
-        if (tableName === 'Arthropod') {
-            loadDynamicArthropodLabels();
-        } else {
-            setLabels(TABLE_LABELS[tableName]);
-        }
         loadBatch();
     }, [tableName, batchSize, currentProject, environment, rerender]);
 
-    // Define the columns for React Table based on labels and keys in transformed data
-    const columns = [
-        { Header: 'Year', accessor: 'year' },
-        { Header: 'Date & Time', accessor: 'dateTime' },
-        { Header: 'Recorder', accessor: 'recorder' },
-        { Header: 'Handler', accessor: 'handler' },
-        { Header: 'Site', accessor: 'site' },
-        { Header: 'Array', accessor: 'array' },
-        { Header: 'No Captures', accessor: 'noCaptures' },
-        { Header: 'Trap Status', accessor: 'trapStatus' },
-        { Header: 'Comments', accessor: 'comments' },
-    ];
+    // Define columns based on the selected table type's specific fields
+    const columns = useMemo(() => {
+        const fields = FIELD_MAPPINGS[tableName] || [];
+        return fields.map((field) => ({
+            Header: field,
+            accessor: field
+        }));
+    }, [tableName]);
 
     const tabsData = [
         { text: 'Turtle', icon: <TurtleIcon /> },
-        { text: 'Lizard', icon: <LizardIcon className="h-6" /> },
+        { text: 'Lizard', icon: <LizardIcon /> },
         { text: 'Mammal', icon: <MammalIcon /> },
         { text: 'Snake', icon: <SnakeIcon /> },
         { text: 'Arthropod', icon: <ArthropodIcon /> },
@@ -84,7 +77,7 @@ export default function TablePage() {
                 showModal={activeTool === 'formBuilder'}
                 onCancel={() => setActiveTool('none')}
                 onOkay={() => setActiveTool('none')}
-                triggerRerender={triggerRerender}
+                triggerRerender={() => setRerender(!rerender)}
             />
             <ExportModal
                 showModal={activeTool === 'export'}
@@ -147,7 +140,7 @@ export default function TablePage() {
                         loadNextBatch={loadNextBatch}
                     />
                 </div>
-                <NewTable columns={columns} data={entries} />
+                <Table columns={columns} data={entries} />
             </div>
         </PageWrapper>
     );

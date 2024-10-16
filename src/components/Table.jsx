@@ -1,77 +1,156 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { TableEntry } from './TableEntry';
-import { TableHeading } from './TableHeading';
-import { tableBody } from '../utils/variants';
-import { getKey } from '../const/tableLabels';
+import React, { useMemo } from "react";
+import { useTable, useBlockLayout, useResizeColumns, useSortBy } from "react-table";
 
-export const Table = ({ labels, columns, entries, name, setEntries }) => {
+const Table = ({ columns, data }) => {
+    // Memoize columns and data to prevent unnecessary re-renders
+    const memoizedColumns = useMemo(() => columns, [columns]);
+    const memoizedData = useMemo(() => data, [data]);
 
-    const [sortedColumn, setSortedColumn] = useState(null);
-    const [sortDirection, setSortDirection] = useState('asc');
+    const defaultColumn = useMemo(
+        () => ({
+            minWidth: 50,
+            width: 150,
+            maxWidth: 300,
+        }),
+        []
+    );
 
-    const sortedEntries = (entries , column, direction) => {
-        const sortedEntries = [...entries];
-        sortedEntries.sort((a, b) => {
-            if (getValue(a, column) > getValue(b, column)) {
-                return (direction === 'asc') ? 1 : -1;
-            }
-            if (getValue(a, column) < getValue(b, column)) {
-                return (direction === 'asc') ? -1 : 1;
-            }
-            return 0;
-        });
-        return sortedEntries;
-    };
+    const {
+        getTableProps,
+        getTableBodyProps,
+        headerGroups,
+        rows,
+        prepareRow,
+    } = useTable(
+        {
+            columns: memoizedColumns,
+            data: memoizedData,
+            defaultColumn,
+        },
+        useBlockLayout,
+        useResizeColumns,
+        useSortBy
+    );
 
-    const sortByColumn = (column) => {
-        const newSortDirection = sortDirection === 'asc' ? 'desc' : 'asc'
-        setSortedColumn(column)
-        setSortDirection(newSortDirection);
-    };
-
-    const getValue = (entry, column) => {
-        const key = getKey(column, name);
-        const value = entry.data?.()[key] || 'N/A';
-        return value;
-    }
+    // Log table structure for debugging
+    console.log("Columns passed to Table:", memoizedColumns);
+    console.log("Data passed to Table:", memoizedData);
 
     return (
-        <table className="w-full table-auto border-separate border-spacing-0">
-            <thead>
-                <tr>
-                    <TableHeading label="Actions" />
-                    {labels &&
-                        labels.map((label) => (columns[label]?.show) &&
-                            <TableHeading
-                                key={label}
-                                label={label}
-                                active={sortedColumn === label}
-                                sortDirection={sortDirection}
-                                onClick={() => {
-                                    sortByColumn(label)
-                                }}
-                            />)}
-                </tr>
-            </thead>
-            <motion.tbody
-                initial='hidden'
-                animate='visible'
-                variants={tableBody}
+        <div
+            style={{
+                display: "flex",
+                justifyContent: "center",
+                width: "100%",
+            }}
+        >
+            <div
+                {...getTableProps()}
+                style={{
+                    width: "100%",
+                    maxWidth: "1920px",
+                    overflowX: "auto",
+                    fontFamily: "sans-serif",
+                    fontSize: "13px",
+                    tableLayout: "fixed",
+                    borderCollapse: "collapse",
+                }}
             >
-                {sortedEntries(entries, sortedColumn, sortDirection).map((entry, index) => (
-                    <TableEntry
-                        index={index}
-                        key={entry.id}
-                        entrySnapshot={entry}
-                        shownColumns={[...labels].filter(label => columns[label]?.show)}
-                        tableName={name}
-                        removeEntry={() => {
-                            setEntries(entries.filter(e => e !== entry));
-                        }}
-                    />
-                ))}
-            </motion.tbody>
-        </table>
+                <div>
+                    {headerGroups.map(headerGroup => (
+                        <div
+                            {...headerGroup.getHeaderGroupProps()}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                backgroundColor: "#1a1a1a",
+                                color: "#d1d1d1",
+                            }}
+                        >
+                            {headerGroup.headers.map(column => (
+                                <div
+                                    {...column.getHeaderProps(column.getSortByToggleProps())}
+                                    style={{
+                                        padding: "10px",
+                                        fontWeight: "bold",
+                                        borderBottom: "1px solid #ccc",
+                                        textAlign: "center",
+                                        flex: column.id === "comments" ? "2" : `0 0 ${column.width || 150}px`,
+                                        position: "relative",
+                                    }}
+                                >
+                                    {column.render("Header")}
+                                    <span>
+                                        {column.isSorted
+                                            ? column.isSortedDesc
+                                                ? " 🔽"
+                                                : " 🔼"
+                                            : ""}
+                                    </span>
+                                    <div
+                                        {...column.getResizerProps()}
+                                        style={{
+                                            display: "inline-block",
+                                            width: "5px",
+                                            height: "100%",
+                                            position: "absolute",
+                                            right: "0",
+                                            top: "0",
+                                            cursor: "col-resize",
+                                            backgroundColor: column.isResizing ? "red" : "transparent",
+                                        }}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+
+                <div {...getTableBodyProps()} style={{ display: "table", width: "100%" }}>
+                    {rows.map(row => {
+                        prepareRow(row);
+                        return (
+                            <div
+                                {...row.getRowProps()}
+                                style={{
+                                    display: "flex",
+                                    minHeight: "50px", // Set a consistent minimum height for each row
+                                    alignItems: "center",
+                                    borderBottom: "1px solid #ccc",
+                                    backgroundColor: "#333333",
+                                }}
+                            >
+                                {row.cells.map(cell => {
+                                    // Debug each cell's content
+                                    console.log(`Rendering cell for column: ${cell.column.id}, value: ${cell.value}`);
+
+                                    return (
+                                        <div
+                                            {...cell.getCellProps()}
+                                            style={{
+                                                padding: "10px",
+                                                color: "#e0e0e0",
+                                                textAlign: "center",
+                                                flex: cell.column.id === "comments" ? "2" : `0 0 ${cell.column.width || 150}px`,
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                            }}
+                                        >
+                                            {cell.render("Cell")}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
     );
 };
+
+export default Table;
