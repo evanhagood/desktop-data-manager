@@ -7,7 +7,6 @@ import TablePage from './pages/TablePage';
 import React from 'react';
 import { Authenticator } from './utils/authenticator';
 import { Notifier } from './components/Notifier';
-import React from 'react';
 
 function App() {
     const [currentPage, setCurrentPage] = useAtom(currentPageName);
