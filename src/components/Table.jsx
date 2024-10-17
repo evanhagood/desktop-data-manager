@@ -1,19 +1,31 @@
 import React, { useMemo } from "react";
-import { useTable, useBlockLayout, useResizeColumns, useSortBy } from "react-table";
+import { useTable, useResizeColumns, useSortBy } from "react-table";
+import { FaEdit, FaTrash } from "react-icons/fa";
 
 const Table = ({ columns, data }) => {
-    // Memoize columns and data to prevent unnecessary re-renders
-    const memoizedColumns = useMemo(() => columns, [columns]);
-    const memoizedData = useMemo(() => data, [data]);
-
-    const defaultColumn = useMemo(
-        () => ({
-            minWidth: 50,
-            width: 150,
-            maxWidth: 300,
-        }),
-        []
-    );
+    const memoizedColumns = useMemo(() => [
+        {
+            Header: "Actions",
+            accessor: "actions",
+            disableResizing: true,
+            Cell: () => (
+                <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
+                    <button style={{ cursor: "pointer", background: "none", border: "none" }}>
+                        <FaEdit title="Edit" />
+                    </button>
+                    <button style={{ cursor: "pointer", background: "none", border: "none" }}>
+                        <FaTrash title="Delete" />
+                    </button>
+                </div>
+            ),
+            width: 80,
+        },
+        ...columns.map(column =>
+            column.accessor === "comments"
+                ? { ...column, width: 350 }
+                : column
+        ),
+    ], [columns]);
 
     const {
         getTableProps,
@@ -24,126 +36,77 @@ const Table = ({ columns, data }) => {
     } = useTable(
         {
             columns: memoizedColumns,
-            data: memoizedData,
-            defaultColumn,
+            data,
         },
-        useBlockLayout,
         useResizeColumns,
         useSortBy
     );
 
-    // Log table structure for debugging
-    console.log("Columns passed to Table:", memoizedColumns);
-    console.log("Data passed to Table:", memoizedData);
-
     return (
-        <div
-            style={{
-                display: "flex",
-                justifyContent: "center",
-                width: "100%",
-            }}
-        >
+        <div style={{ display: "flex", justifyContent: "center", padding: "20px" }}>
             <div
                 {...getTableProps()}
                 style={{
                     width: "100%",
-                    maxWidth: "1920px",
-                    overflowX: "auto",
+                    maxWidth: "90%",
                     fontFamily: "sans-serif",
                     fontSize: "13px",
-                    tableLayout: "fixed",
                     borderCollapse: "collapse",
+                    tableLayout: "fixed",
+                    overflowX: "auto",
+                    backgroundColor: "#1a1a1a",
+                    color: "#d1d1d1",
                 }}
             >
+                {/* Table Header */}
                 <div>
                     {headerGroups.map(headerGroup => (
-                        <div
-                            {...headerGroup.getHeaderGroupProps()}
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                backgroundColor: "#1a1a1a",
-                                color: "#d1d1d1",
-                            }}
-                        >
+                        <div {...headerGroup.getHeaderGroupProps()} style={{ display: "flex" }}>
                             {headerGroup.headers.map(column => (
                                 <div
                                     {...column.getHeaderProps(column.getSortByToggleProps())}
                                     style={{
                                         padding: "10px",
                                         fontWeight: "bold",
-                                        borderBottom: "1px solid #ccc",
                                         textAlign: "center",
-                                        flex: column.id === "comments" ? "2" : `0 0 ${column.width || 150}px`,
-                                        position: "relative",
+                                        flex: column.accessor === "comments" ? "3" : `0 0 ${column.width || 150}px`,
                                     }}
                                 >
                                     {column.render("Header")}
-                                    <span>
-                                        {column.isSorted
-                                            ? column.isSortedDesc
-                                                ? " 🔽"
-                                                : " 🔼"
-                                            : ""}
-                                    </span>
-                                    <div
-                                        {...column.getResizerProps()}
-                                        style={{
-                                            display: "inline-block",
-                                            width: "5px",
-                                            height: "100%",
-                                            position: "absolute",
-                                            right: "0",
-                                            top: "0",
-                                            cursor: "col-resize",
-                                            backgroundColor: column.isResizing ? "red" : "transparent",
-                                        }}
-                                    />
                                 </div>
                             ))}
                         </div>
                     ))}
                 </div>
 
+                {/* Table Body */}
                 <div {...getTableBodyProps()} style={{ display: "table", width: "100%" }}>
-                    {rows.map(row => {
+                    {rows.map((row, rowIndex) => {
                         prepareRow(row);
                         return (
                             <div
                                 {...row.getRowProps()}
                                 style={{
                                     display: "flex",
-                                    minHeight: "50px", // Set a consistent minimum height for each row
-                                    alignItems: "center",
-                                    borderBottom: "1px solid #ccc",
-                                    backgroundColor: "#333333",
+                                    backgroundColor: rowIndex % 2 === 0 ? "#333333" : "#2b2b2b",
                                 }}
                             >
-                                {row.cells.map(cell => {
-                                    // Debug each cell's content
-                                    console.log(`Rendering cell for column: ${cell.column.id}, value: ${cell.value}`);
-
-                                    return (
-                                        <div
-                                            {...cell.getCellProps()}
-                                            style={{
-                                                padding: "10px",
-                                                color: "#e0e0e0",
-                                                textAlign: "center",
-                                                flex: cell.column.id === "comments" ? "2" : `0 0 ${cell.column.width || 150}px`,
-                                                whiteSpace: "nowrap",
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                            }}
-                                        >
-                                            {cell.render("Cell")}
-                                        </div>
-                                    );
-                                })}
+                                {row.cells.map(cell => (
+                                    <div
+                                        {...cell.getCellProps()}
+                                        style={{
+                                            padding: "10px",
+                                            textAlign: "center",
+                                            flex: cell.column.accessor === "comments" ? "3" : `0 0 ${cell.column.width || 150}px`,
+                                            whiteSpace: cell.column.accessor === "comments" ? "normal" : "nowrap",
+                                            overflow: cell.column.accessor === "comments" ? "visible" : "hidden",
+                                            textOverflow: cell.column.accessor === "comments" ? "clip" : "ellipsis",
+                                            color: "#e0e0e0",
+                                        }}
+                                    >
+                                        {cell.render("Cell")}
+                                    </div>
+                                ))}
                             </div>
                         );
                     })}
