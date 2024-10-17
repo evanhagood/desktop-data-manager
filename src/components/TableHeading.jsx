@@ -1,5 +1,6 @@
 import classNames from 'classnames';
 import { SortAscIcon, SortDescIcon } from '../assets/icons';
+import React from 'react';
 
 export const TableHeading = ({ label, active, sortDirection, onClick }) => {
 

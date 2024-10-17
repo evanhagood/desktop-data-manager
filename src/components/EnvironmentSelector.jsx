@@ -1,5 +1,6 @@
 import { useAtom } from "jotai";
 import { appMode } from "../utils/jotai";
+import React from 'react';
 
 export default function EnvironmentSelector() {
   const [environment, setEnvironment] = useAtom(appMode);

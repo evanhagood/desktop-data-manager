@@ -8,6 +8,7 @@ import { getKey, getKeys, getLabel } from '../const/tableLabels';
 import { getSessionEntryCount, startEntryOperation } from '../utils/firestore';
 import { Type, notify } from './Notifier';
 import { FormField } from './FormFields';
+import React from 'react';
 
 const BINARY_KEYS = ['noCaptures', 'isAlive', 'dead'];
 const TRUE_KEYS = ['Y', 'y', 'T', 't'];

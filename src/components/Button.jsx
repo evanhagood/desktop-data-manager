@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import React from 'react';
 import { LayoutGroup, motion, useAnimationControls } from 'framer-motion';
 import { useEffect } from 'react';
 import classNames from 'classnames';
