@@ -21,8 +21,9 @@ const FIELD_MAPPINGS = {
     Lizard: ["year", "dateTime", "site", "array", "fenceTrap", "taxa", "speciesCode", "genus", "species", "toeClipCode", "recapture", "svlMm", "vtlMm", "regenTail", "otlMm", "hatchling", "massG", "sex", "dead", "comments"],
     Mammal: ["year", "dateTime", "site", "array", "fenceTrap", "taxa", "speciesCode", "genus", "species", "massG", "sex", "dead", "comments"],
     Snake: ["year", "dateTime", "site", "array", "fenceTrap", "taxa", "speciesCode", "genus", "svlMm", "vtlMm", "massG", "sex", "dead", "comments"],
-    Anthropod: ["year", "dateTime", "site", "array", "predator", "aran", "auch", "blat", "chil", "cole", "crus", "derm", "diel", "dipt", "hete", "hyma", "hymb", "lepi", "mant", "orth", "pseu", "scor", "soli", "thys", "unki", "micro", "comments"],
-    Amphibian: ["year", "dateTime", "site", "array", "fenceTrap", "taxa", "speciesCode", "genus", "massG", "sex", "dead", "comments"]
+    Arthropod: ["year", "dateTime", "site", "array", "predator", "aran", "auch", "blat", "chil", "cole", "crus", "derm", "diel", "dipt", "hete", "hyma", "hymb", "lepi", "mant", "orth", "pseu", "scor", "soli", "thys", "unki", "micro", "comments"],
+    Amphibian: ["year", "dateTime", "site", "array", "fenceTrap", "taxa", "speciesCode", "genus", "massG", "sex", "dead", "comments"],
+    Session: ["year", "dateTime", "recorder", "handler", "site", "array", "noCaptures", "trapStatus", "comments"]
 };
 
 export default function TablePage() {
@@ -44,9 +45,14 @@ export default function TablePage() {
                 )
             };
         });
+        console.log("Transformed entries from Firebase before further processing:", transformedEntries);
 
         setEntries(transformedEntries);
     });
+
+    useEffect(() => {
+        console.log("Entries after setting state:", entries);
+    }, [entries]);
 
     useEffect(() => {
         loadBatch();
@@ -55,6 +61,8 @@ export default function TablePage() {
     // Define columns based on the selected table type's specific fields
     const columns = useMemo(() => {
         const fields = FIELD_MAPPINGS[tableName] || [];
+        console.log("Current Table Name:", tableName);  // Ensure this prints "Arthropod" when that tab is active
+        console.log("Fields for column creation:", fields);  // Check fields here
         return fields.map((field) => ({
             Header: field,
             accessor: field

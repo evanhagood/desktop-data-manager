@@ -1,9 +1,12 @@
 import React, { useMemo } from "react";
-import { useTable, useBlockLayout, useResizeColumns, useSortBy } from "react-table";
+import { useTable, useResizeColumns, useSortBy } from "react-table";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import TableHeading from "./TableHeading";
 
 const Table = ({ columns, data, onEdit, onDelete }) => {
+
+    console.log("Columns in Table component:", columns);
+
     const memoizedColumns = useMemo(() => [
         {
             Header: "Actions",
@@ -24,6 +27,9 @@ const Table = ({ columns, data, onEdit, onDelete }) => {
         ...columns,
     ], [columns]);
 
+    console.log("Columns in Table component:", columns);
+
+
     const {
         getTableProps,
         getTableBodyProps,
@@ -35,107 +41,100 @@ const Table = ({ columns, data, onEdit, onDelete }) => {
             columns: memoizedColumns,
             data,
         },
-        useBlockLayout,
         useSortBy,
         useResizeColumns
     );
 
     return (
-        <div style={{ width: "100%", padding: "20px", overflowX: "auto" }}>
-            <div
+        <div style={{ width: "100%", overflowX: "auto" }}>
+            <table
                 {...getTableProps()}
                 style={{
-                    display: "table",
                     width: "100%",
+                    borderCollapse: "collapse",
                     fontFamily: "sans-serif",
                     fontSize: "13px",
-                    color: "#d1d1d1",
                     backgroundColor: "#1a1a1a",
-                    borderRadius: "8px",
+                    color: "#d1d1d1",
                 }}
             >
                 {/* Table Header */}
-                <div style={{ display: "table-header-group", width: "100%" }}>
-                    {headerGroups.map(headerGroup => (
-                        <div {...headerGroup.getHeaderGroupProps()} style={{ display: "flex", width: "100%" }}>
-                            {headerGroup.headers.map(column => (
-                                <div
-                                    {...column.getHeaderProps()}
-                                    style={{
-                                        flex: `0 0 ${column.width || 150}px`,
-                                        padding: "10px",
-                                        fontWeight: "bold",
-                                        textAlign: "center",
-                                        borderBottom: "2px solid #444",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        backgroundColor: "#2b2b2b",
-                                        position: "relative",
-                                    }}
-                                >
-                                    <TableHeading
-                                        label={column.render("Header")}
-                                        active={column.isSorted}
-                                        sortDirection={column.isSortedDesc ? 'desc' : 'asc'}
-                                    />
-                                    {column.canResize && (
-                                        <div
-                                            {...column.getResizerProps()}
-                                            style={{
-                                                width: "5px",
-                                                height: "100%",
-                                                position: "absolute",
-                                                right: 0,
-                                                top: 0,
-                                                cursor: "col-resize",
-                                                backgroundColor: column.isResizing ? "#ddd" : "transparent",
-                                                zIndex: 1,
-                                            }}
-                                            onClick={(e) => e.stopPropagation()}
-                                        />
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    ))}
-                </div>
-
-                {/* Table Body */}
-                <div {...getTableBodyProps()} style={{ display: "table-row-group", width: "100%" }}>
-                    {rows.map((row, rowIndex) => {
-                        prepareRow(row);
-                        return (
-                            <div
-                                {...row.getRowProps()}
+                <thead>
+                {headerGroups.map(headerGroup => (
+                    <tr {...headerGroup.getHeaderGroupProps()}>
+                        {headerGroup.headers.map(column => (
+                            <th
+                                {...column.getHeaderProps(column.getSortByToggleProps())}
                                 style={{
-                                    display: "flex",
-                                    width: "100%",
-                                    backgroundColor: rowIndex % 2 === 0 ? "#333333" : "#2b2b2b",
+                                    padding: "10px",
+                                    fontWeight: "bold",
+                                    textAlign: "center",
+                                    backgroundColor: "#2b2b2b",
+                                    borderBottom: "2px solid #444",
+                                    position: "relative",
+                                    whiteSpace: "nowrap",
+                                    width: column.width || 150,
                                 }}
                             >
-                                {row.cells.map(cell => (
+                                <TableHeading
+                                    label={column.render("Header")}
+                                    active={column.isSorted}
+                                    sortDirection={column.isSortedDesc ? 'desc' : 'asc'}
+                                />
+                                {column.canResize && (
                                     <div
-                                        {...cell.getCellProps()}
+                                        {...column.getResizerProps()}
                                         style={{
-                                            flex: `0 0 ${cell.column.width || 150}px`,
-                                            padding: "10px",
-                                            textAlign: "center",
-                                            whiteSpace: "nowrap",
-                                            overflow: "hidden",
-                                            textOverflow: "ellipsis",
-                                            borderBottom: "1px solid #444",
-                                            minWidth: cell.column.width || 100,
+                                            width: "5px",
+                                            height: "100%",
+                                            position: "absolute",
+                                            right: 0,
+                                            top: 0,
+                                            cursor: "col-resize",
+                                            backgroundColor: column.isResizing ? "#ddd" : "transparent",
+                                            zIndex: 1,
                                         }}
-                                    >
-                                        {cell.render("Cell")}
-                                    </div>
-                                ))}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
+                                        onClick={(e) => e.stopPropagation()}
+                                    />
+                                )}
+                            </th>
+                        ))}
+                    </tr>
+                ))}
+                </thead>
+
+                {/* Table Body */}
+                <tbody {...getTableBodyProps()}>
+                {rows.map((row, rowIndex) => {
+                    prepareRow(row);
+                    return (
+                        <tr
+                            {...row.getRowProps()}
+                            style={{
+                                backgroundColor: rowIndex % 2 === 0 ? "#333333" : "#2b2b2b",
+                            }}
+                        >
+                            {row.cells.map(cell => (
+                                <td
+                                    {...cell.getCellProps()}
+                                    style={{
+                                        padding: "10px",
+                                        textAlign: "center",
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        borderBottom: "1px solid #444",
+                                        width: cell.column.width || 150,
+                                    }}
+                                >
+                                    {cell.render("Cell")}
+                                </td>
+                            ))}
+                        </tr>
+                    );
+                })}
+                </tbody>
+            </table>
         </div>
     );
 };
