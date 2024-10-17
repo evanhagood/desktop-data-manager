@@ -1,8 +1,9 @@
 import React, { useMemo } from "react";
-import { useTable, useResizeColumns, useSortBy } from "react-table";
+import { useTable, useBlockLayout, useResizeColumns, useSortBy } from "react-table";
 import { FaEdit, FaTrash } from "react-icons/fa";
+import TableHeading from "./TableHeading";
 
-const Table = ({ columns, data }) => {
+const Table = ({ columns, data, onEdit, onDelete }) => {
     const memoizedColumns = useMemo(() => [
         {
             Header: "Actions",
@@ -20,11 +21,7 @@ const Table = ({ columns, data }) => {
             ),
             width: 80,
         },
-        ...columns.map(column =>
-            column.accessor === "comments"
-                ? { ...column, width: 350 }
-                : column
-        ),
+        ...columns,
     ], [columns]);
 
     const {
@@ -38,41 +35,66 @@ const Table = ({ columns, data }) => {
             columns: memoizedColumns,
             data,
         },
-        useResizeColumns,
-        useSortBy
+        useBlockLayout,
+        useSortBy,
+        useResizeColumns
     );
 
     return (
-        <div style={{ display: "flex", justifyContent: "center", padding: "20px" }}>
+        <div style={{ width: "100%", padding: "20px", overflowX: "auto" }}>
             <div
                 {...getTableProps()}
                 style={{
+                    display: "table",
                     width: "100%",
-                    maxWidth: "90%",
                     fontFamily: "sans-serif",
                     fontSize: "13px",
-                    borderCollapse: "collapse",
-                    tableLayout: "fixed",
-                    overflowX: "auto",
-                    backgroundColor: "#1a1a1a",
                     color: "#d1d1d1",
+                    backgroundColor: "#1a1a1a",
+                    borderRadius: "8px",
                 }}
             >
                 {/* Table Header */}
-                <div>
+                <div style={{ display: "table-header-group", width: "100%" }}>
                     {headerGroups.map(headerGroup => (
-                        <div {...headerGroup.getHeaderGroupProps()} style={{ display: "flex" }}>
+                        <div {...headerGroup.getHeaderGroupProps()} style={{ display: "flex", width: "100%" }}>
                             {headerGroup.headers.map(column => (
                                 <div
-                                    {...column.getHeaderProps(column.getSortByToggleProps())}
+                                    {...column.getHeaderProps()}
                                     style={{
+                                        flex: `0 0 ${column.width || 150}px`,
                                         padding: "10px",
                                         fontWeight: "bold",
                                         textAlign: "center",
-                                        flex: column.accessor === "comments" ? "3" : `0 0 ${column.width || 150}px`,
+                                        borderBottom: "2px solid #444",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        backgroundColor: "#2b2b2b",
+                                        position: "relative",
                                     }}
                                 >
-                                    {column.render("Header")}
+                                    <TableHeading
+                                        label={column.render("Header")}
+                                        active={column.isSorted}
+                                        sortDirection={column.isSortedDesc ? 'desc' : 'asc'}
+                                    />
+                                    {column.canResize && (
+                                        <div
+                                            {...column.getResizerProps()}
+                                            style={{
+                                                width: "5px",
+                                                height: "100%",
+                                                position: "absolute",
+                                                right: 0,
+                                                top: 0,
+                                                cursor: "col-resize",
+                                                backgroundColor: column.isResizing ? "#ddd" : "transparent",
+                                                zIndex: 1,
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -80,7 +102,7 @@ const Table = ({ columns, data }) => {
                 </div>
 
                 {/* Table Body */}
-                <div {...getTableBodyProps()} style={{ display: "table", width: "100%" }}>
+                <div {...getTableBodyProps()} style={{ display: "table-row-group", width: "100%" }}>
                     {rows.map((row, rowIndex) => {
                         prepareRow(row);
                         return (
@@ -88,6 +110,7 @@ const Table = ({ columns, data }) => {
                                 {...row.getRowProps()}
                                 style={{
                                     display: "flex",
+                                    width: "100%",
                                     backgroundColor: rowIndex % 2 === 0 ? "#333333" : "#2b2b2b",
                                 }}
                             >
@@ -95,13 +118,14 @@ const Table = ({ columns, data }) => {
                                     <div
                                         {...cell.getCellProps()}
                                         style={{
+                                            flex: `0 0 ${cell.column.width || 150}px`,
                                             padding: "10px",
                                             textAlign: "center",
-                                            flex: cell.column.accessor === "comments" ? "3" : `0 0 ${cell.column.width || 150}px`,
-                                            whiteSpace: cell.column.accessor === "comments" ? "normal" : "nowrap",
-                                            overflow: cell.column.accessor === "comments" ? "visible" : "hidden",
-                                            textOverflow: cell.column.accessor === "comments" ? "clip" : "ellipsis",
-                                            color: "#e0e0e0",
+                                            whiteSpace: "nowrap",
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            borderBottom: "1px solid #444",
+                                            minWidth: cell.column.width || 100,
                                         }}
                                     >
                                         {cell.render("Cell")}
