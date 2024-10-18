@@ -9,6 +9,7 @@ import { TABLE_KEYS } from "../const/tableLabels";
 import { FormField, ProjectField, YearField } from "./FormFields";
 import InputLabel from "./InputLabel";
 import { Type, notify } from "./Notifier";
+import React from 'react';
 
 export default function NewEntryForm({ setData }) {
     const environment = useAtomValue(appMode);

@@ -1,6 +1,7 @@
 import Button from '../components/Button';
 import { AnimatePresence, motion } from 'framer-motion';
 import { modalVariant } from '../utils/variants';
+import React from 'react';
 
 export default function Modal({
     title,
