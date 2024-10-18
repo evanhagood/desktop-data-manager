@@ -2,6 +2,7 @@ import { useAtom } from "jotai";
 import { BackArrowIcon, ForwardArrowIcon } from "../assets/icons";
 import { currentBatchSize } from "../utils/jotai";
 import { notify, Type } from "./Notifier";
+import React from 'react';
 
 export const Pagination = ({
     loadNextBatch,

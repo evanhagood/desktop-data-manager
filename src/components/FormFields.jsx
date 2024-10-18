@@ -11,6 +11,7 @@ import { AnimatePresence, useCycle } from "framer-motion";
 import { getDocs, query, collection, where } from "firebase/firestore";
 import { motion } from "framer-motion";
 import { db } from "../utils/firebase";
+import React from 'react';
 
 export const YearField = ({ year, setYear, layout }) => {
     const currentYear = new Date().getFullYear();

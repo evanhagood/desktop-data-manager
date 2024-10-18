@@ -1,4 +1,5 @@
 import toast, { Toaster } from "react-hot-toast";
+import React from 'react';
 
 const Type = {
     error: 0,

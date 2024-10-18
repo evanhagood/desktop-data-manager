@@ -1,6 +1,7 @@
 import Button from "../components/Button";
 import { GoogleIcon, LizardIcon } from "../assets/icons";
 import PageWrapper from "./PageWrapper";
+import React from 'react';
 
 export default function LoginPage({ auth }) {
     const LOADING_MESSAGE = 'Loading Google\'s authentication.';
