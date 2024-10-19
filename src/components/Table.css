@@ -1,0 +1,53 @@
+/* /components/Table.css */
+
+.table-container {
+    display: grid;
+    grid-auto-rows: min-content;
+    border: 1px solid #ddd;
+    width: 100%;
+}
+
+.table-header {
+    display: grid;
+    grid-auto-flow: column;
+    background-color: #f1f1f1;
+    border-bottom: 1px solid #ddd;
+}
+
+.header-cell {
+    position: relative;
+    padding: 8px;
+    border-right: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.resize-handle {
+    width: 5px;
+    cursor: col-resize;
+    background-color: transparent;
+    height: 100%;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+.resize-handle:hover {
+    background-color: #ccc;
+}
+
+.table-body {
+    display: grid;
+    grid-auto-flow: row;
+}
+
+.table-row {
+    display: contents; /* To align with the grid layout */
+}
+
+.cell {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { TableEntry } from './TableEntry';
 import { TableHeading } from './TableHeading';
@@ -6,72 +6,99 @@ import { tableBody } from '../utils/variants';
 import { getKey } from '../const/tableLabels';
 
 export const Table = ({ labels, columns, entries, name, setEntries }) => {
-
-    const [sortedColumn, setSortedColumn] = useState(null);
+    // Ensure state for sorting is properly declared
+    const [sortedColumn, setSortedColumn] = useState(null); // <-- This ensures the column state is defined.
     const [sortDirection, setSortDirection] = useState('asc');
+    const [columnWidths, setColumnWidths] = useState(
+        labels.reduce((acc, label) => ({ ...acc, [label]: 1 }), {})
+    );
 
-    const sortedEntries = (entries , column, direction) => {
-        const sortedEntries = [...entries];
-        sortedEntries.sort((a, b) => {
-            if (getValue(a, column) > getValue(b, column)) {
-                return (direction === 'asc') ? 1 : -1;
-            }
-            if (getValue(a, column) < getValue(b, column)) {
-                return (direction === 'asc') ? -1 : 1;
-            }
+    const tableRef = useRef(null);
+
+    const getValue = useCallback((entry, column) => {
+        const key = getKey(column, name);
+        return entry.data?.()[key] || 'N/A';
+    }, [name]);
+
+    const sortedEntries = useMemo(() => {
+        if (!sortedColumn) return entries; // Ensure sortedColumn is checked
+        return [...entries].sort((a, b) => {
+            const valA = getValue(a, sortedColumn);
+            const valB = getValue(b, sortedColumn);
+            if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+            if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
             return 0;
         });
-        return sortedEntries;
-    };
+    }, [entries, sortedColumn, sortDirection, getValue]);
 
     const sortByColumn = (column) => {
-        const newSortDirection = sortDirection === 'asc' ? 'desc' : 'asc'
-        setSortedColumn(column)
+        const newSortDirection =
+            sortedColumn === column && sortDirection === 'asc' ? 'desc' : 'asc';
+        setSortedColumn(column);
         setSortDirection(newSortDirection);
     };
 
-    const getValue = (entry, column) => {
-        const key = getKey(column, name);
-        const value = entry.data?.()[key] || 'N/A';
-        return value;
-    }
+    const handleMouseDown = (index) => (e) => {
+        const startX = e.clientX;
+
+        const handleMouseMove = (e) => {
+            const deltaX = e.clientX - startX;
+            const newWidths = [...columnWidths];
+            newWidths[index] = Math.max(newWidths[index] + deltaX / 100, 0.1);
+            setColumnWidths(newWidths);
+        };
+
+        const handleMouseUp = () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    };
+
+    const gridTemplate = columnWidths.map((w) => `${w}fr`).join(' ');
 
     return (
-        <table className="w-full table-auto border-separate border-spacing-0">
-            <thead>
-                <tr>
-                    <TableHeading label="Actions" />
-                    {labels &&
-                        labels.map((label) => (columns[label]?.show) &&
-                            <TableHeading
-                                key={label}
-                                label={label}
-                                active={sortedColumn === label}
-                                sortDirection={sortDirection}
-                                onClick={() => {
-                                    sortByColumn(label)
-                                }}
-                            />)}
-                </tr>
-            </thead>
-            <motion.tbody
-                initial='hidden'
-                animate='visible'
-                variants={tableBody}
+        <div ref={tableRef} className="table-container">
+            <div
+                className="table-header"
+                style={{ gridTemplateColumns: gridTemplate }}
             >
-                {sortedEntries(entries, sortedColumn, sortDirection).map((entry, index) => (
-                    <TableEntry
-                        index={index}
-                        key={entry.id}
-                        entrySnapshot={entry}
-                        shownColumns={[...labels].filter(label => columns[label]?.show)}
-                        tableName={name}
-                        removeEntry={() => {
-                            setEntries(entries.filter(e => e !== entry));
-                        }}
-                    />
+                <div className="header-cell">Actions</div>
+                {labels.map((label, index) => (
+                    <div key={label} className="header-cell">
+                        <TableHeading
+                            label={label}
+                            active={sortedColumn === label}
+                            sortDirection={sortDirection}
+                            onClick={() => sortByColumn(label)}
+                        />
+                        <div
+                            className="resize-handle"
+                            onMouseDown={handleMouseDown(index)}
+                        />
+                    </div>
                 ))}
-            </motion.tbody>
-        </table>
+            </div>
+            <motion.div
+                className="table-body"
+                initial="hidden"
+                animate="visible"
+                variants={tableBody}
+                style={{ gridTemplateColumns: gridTemplate }}
+            >
+                {sortedEntries.map((entry) => (
+                    <div key={entry.id} className="table-row">
+                        <div className="cell"> {/* Actions */} </div>
+                        {labels.map((label) => (
+                            <div key={`${entry.id}-${label}`} className="cell">
+                                {getValue(entry, label)}
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </motion.div>
+        </div>
     );
 };
