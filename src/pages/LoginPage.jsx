@@ -4,20 +4,23 @@ import PageWrapper from './PageWrapper';
 import { GoogleIcon, LizardIcon } from '../assets/icons';
 import { getFirestore, collection, addDoc } from 'firebase/firestore';
 import { auth, signInWithGoogle } from '../firebase';
+import { auth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { addDocToCollection } from '../firestore'; 
 
 export default function LoginPage({ auth, onLogin }) {
     const LOADING_MESSAGE = "Loading Google's authentication.";
     const LOGIN_MESSAGE = 'Click login to sign in with your ASURITE ID.';
-    const db = getFirestore();
+
 
     const handleLogin = async () => {
         try {
-            const userCredential = await signInWithGoogle();
-            const user = userCredential.user;
+            const provider = new GoogleAuthProvider();
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
 
             if (user) {
-                const email = user.email;
-                const loginTime = new Date();
+                const email = user.email; 
+                const loginTime = new Date();  
 
                 const loginHistory = {
                     email: email,
@@ -25,15 +28,13 @@ export default function LoginPage({ auth, onLogin }) {
                     time: loginTime.toLocaleTimeString(),
                 };
 
-                await addDoc(collection(db, 'loginHistory'), loginHistory);
+                await addDocToCollection('loginHistory', loginHistory);
                 console.log('Login history saved:', loginHistory);
             }
-              } catch (error) {
+        } catch (error) {
             console.error('Error logging in:', error);
         }
-        
-        };
-    
+    };
         
     return (
         <PageWrapper>
