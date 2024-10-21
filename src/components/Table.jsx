@@ -1,10 +1,11 @@
-// Table.js
 import React, { Component, createRef } from 'react';
 import { motion } from 'framer-motion';
 import { TableEntry } from './TableEntry';
 import { tableBody } from '../utils/variants';
 import { getKey } from '../const/tableLabels';
 import './Table.css';
+import { throttle } from 'lodash'; // Throttle event handlers to optimize performance
+
 export class Table extends Component {
     constructor(props) {
         super(props);
@@ -14,51 +15,48 @@ export class Table extends Component {
             columnWidths: this.initializeColumnWidths(),
         };
         this.resizingColumn = createRef();
-        this.handleMouseMove = this.handleMouseMove.bind(this);
-        this.stopResizing = this.stopResizing.bind(this);
     }
+
     componentDidMount() {
-        // Ensure proper layout and re-render if necessary
-        this.forceUpdateLayout();  // Force initial layout update
+        this.forceUpdateLayout(); // Force initial layout update
         window.addEventListener('resize', this.forceUpdateLayout);
     }
-    
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.entries !== this.props.entries && this.props.entries.length > 0) {
+            if (!this.state.isDataLoaded) {
+                this.setState({ isDataLoaded: true }, this.resetColumns);
+            }
+        }
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('resize', this.forceUpdateLayout);
+        this.cleanupResizeEvents(); // Ensure all listeners are removed
+    }
+
     forceUpdateLayout = () => {
-        // Trigger reflow by updating state, ensuring widths are applied correctly
         this.setState((prevState) => ({
-            columnWidths: { ...prevState.columnWidths }
+            columnWidths: { ...prevState.columnWidths },
         }));
     };
-    
-    componentDidMount() {
-        // Ensure proper layout and re-render if necessary
-        window.addEventListener('resize', this.forceUpdateLayout);
-    }
-    componentWillUnmount() {
-        // Clean up event listener
-        window.removeEventListener('resize', this.forceUpdateLayout);
-    }
-    forceUpdateLayout = () => {
-        // Force a re-render to ensure columns are resizable
-        this.setState((prevState) => ({ columnWidths: { ...prevState.columnWidths } }));
-    };
-
 
     initializeColumnWidths = () => {
         const { labels } = this.props;
         return labels.reduce((acc, label) => {
-            acc[label] = 100; // Default width: 100px
+            acc[label] = 90; // Default width: 100px
             return acc;
         }, {});
     };
+
     resetColumns = () => {
-        // Reset column widths and sorting state
         this.setState({
             sortedColumn: null,
             sortDirection: 'asc',
-            columnWidths: this.initializeColumnWidths(), // Reset to default widths
+            columnWidths: this.initializeColumnWidths(),
         });
     };
+
     sortEntries = (entries, column, direction) => {
         const sorted = [...entries].sort((a, b) => {
             const valueA = this.getValue(a, column);
@@ -71,16 +69,10 @@ export class Table extends Component {
     };
 
     toggleSortDirection = (column) => {
-        this.setState((prevState) => {
-            const newDirection =
-                prevState.sortedColumn === column && prevState.sortDirection === 'asc'
-                    ? 'desc'
-                    : 'asc';
-            return {
-                sortedColumn: column,
-                sortDirection: newDirection,
-            };
-        });
+        this.setState((prevState) => ({
+            sortedColumn: column,
+            sortDirection: prevState.sortDirection === 'asc' ? 'desc' : 'asc',
+        }));
     };
 
     getValue = (entry, column) => {
@@ -95,23 +87,29 @@ export class Table extends Component {
             startX: e.clientX,
             startWidth: this.state.columnWidths[label],
         };
-        window.addEventListener('mousemove', this.handleMouseMove);
+        window.addEventListener('mousemove', this.throttledMouseMove);
         window.addEventListener('mouseup', this.stopResizing);
     };
 
-    handleMouseMove(e) {
+    throttledMouseMove = throttle((e) => this.handleMouseMove(e), 50);
+
+    handleMouseMove = (e) => {
         const { label, startX, startWidth } = this.resizingColumn.current;
-        const newWidth = Math.max(startWidth + (e.clientX - startX), 20); // Min width: 50px
+        const newWidth = Math.max(startWidth + (e.clientX - startX), 10); // Minimum width: 10px
         this.setState((prevState) => ({
             columnWidths: { ...prevState.columnWidths, [label]: newWidth },
         }));
-    }
+    };
 
-    stopResizing() {
+    stopResizing = () => {
         this.resizingColumn.current = null;
-        window.removeEventListener('mousemove', this.handleMouseMove);
+        this.cleanupResizeEvents();
+    };
+
+    cleanupResizeEvents = () => {
+        window.removeEventListener('mousemove', this.throttledMouseMove);
         window.removeEventListener('mouseup', this.stopResizing);
-    }
+    };
 
     render() {
         const { labels, columns, entries, name, setEntries } = this.props;
@@ -121,30 +119,26 @@ export class Table extends Component {
 
         return (
             <div className="table-container">
-            {/* Reset Button Positioned Above the Table */}
-            <div className="flex justify-end mb-4">
-                <button
-                    onClick={this.resetColumns}
-                    className="px-0py-0 bg-blue-300 text-white rounded hover:bg-blue-500"
+                <div className="flex justify-end mb-4">
+                    <button
+                        onClick={this.resetColumns}
+                        className="px-2 py-1 bg-blue-300 text-white rounded hover:bg-blue-500"
+                    >
+                        Reset Columns
+                    </button>
+                </div>
+                <table
+                    className="w-full border-separate border-spacing-0"
+                    style={{ tableLayout: 'fixed' }}
                 >
-                    Reset Columns
-                </button>
-            </div>
-            <table
-                className="w-full border-separate border-spacing-0"
-                style={{ tableLayout: 'fixed' }} // Force fixed layout for proper resizing
-            >
-                <thead>
-                    <tr>
-                        <th style={{ width: 100, textAlign:'center', paddingLeft: '0px' ,}}>Actions</th>
-                        {labels.map(
-                            (label) =>
+                    <thead>
+                        <tr>
+                            <th style={{ width: 100, textAlign: 'center' }}>Actions</th>
+                            {labels.map((label) =>
                                 columns[label]?.show && (
                                     <th
                                         key={label}
                                         style={{
-                                            textAlign: 'center', // Force 
-                                            paddingLeft: '15px', // Add padding for content alignment
                                             width: columnWidths[label],
                                             minWidth: '20px',
                                             overflow: 'hidden',
@@ -165,33 +159,30 @@ export class Table extends Component {
                                         </div>
                                         <div
                                             className="absolute right-0 top-0 h-full w-2 cursor-col-resize bg-gray-300"
-                                            style={{ textAlign: 'center',transform: 'translateX(50%)' }}
+                                            style={{ transform: 'translateX(50%)' }}
                                             onMouseDown={(e) => this.startResizing(label, e)}
                                         />
                                     </th>
                                 )
-                        )}
-                    </tr>
-                </thead>
-                <motion.tbody
-                    initial="hidden"
-                    animate="visible"
-                    variants={tableBody}
-                >
-                    {sortedEntries.map((entry, index) => (
-                        <TableEntry
-                            key={entry.id}
-                            index={index}
-                            entrySnapshot={entry}
-                            shownColumns={labels.filter((label) => columns[label]?.show)}
-                            tableName={name}
-                            removeEntry={() =>
-                                setEntries(entries.filter((e) => e !== entry))
-                            }
-                        />
-                    ))}
-                </motion.tbody>
-            </table>
-        </div>);
+                            )}
+                        </tr>
+                    </thead>
+                    <motion.tbody initial="hidden" animate="visible" variants={tableBody}>
+                        {sortedEntries.map((entry, index) => (
+                            <TableEntry
+                                key={entry.id}
+                                index={index}
+                                entrySnapshot={entry}
+                                shownColumns={labels.filter((label) => columns[label]?.show)}
+                                tableName={name}
+                                removeEntry={() =>
+                                    setEntries(entries.filter((e) => e !== entry))
+                                }
+                            />
+                        ))}
+                    </motion.tbody>
+                </table>
+            </div>
+        );
     }
 }
