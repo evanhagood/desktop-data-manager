@@ -1,3 +1,4 @@
+// Table.js
 import React, { Component, createRef } from 'react';
 import { motion } from 'framer-motion';
 import { TableEntry } from './TableEntry';
@@ -110,6 +111,16 @@ export class Table extends Component {
         window.removeEventListener('mousemove', this.throttledMouseMove);
         window.removeEventListener('mouseup', this.stopResizing);
     };
+ 
+    confirmAndRemoveEntry = (entry) => {
+        const { entries, setEntries } = this.props;
+        const confirmation = window.confirm('Are you sure you want to delete this entry?');
+        if (confirmation) {
+            setEntries(entries.filter((e) => e !== entry));
+        }
+    };
+
+
 
     render() {
         const { labels, columns, entries, name, setEntries } = this.props;
@@ -175,9 +186,8 @@ export class Table extends Component {
                                 entrySnapshot={entry}
                                 shownColumns={labels.filter((label) => columns[label]?.show)}
                                 tableName={name}
-                                removeEntry={() =>
-                                    setEntries(entries.filter((e) => e !== entry))
-                                }
+                                removeEntry={() => this.confirmAndRemoveEntry(entry)}
+                                
                             />
                         ))}
                     </motion.tbody>
