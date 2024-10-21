@@ -3,6 +3,7 @@ import Button from '../components/Button'; // Ensure path is correct
 import PageWrapper from './PageWrapper';
 import { GoogleIcon, LizardIcon } from '../assets/icons';
 import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { auth, signInWithGoogle } from '../firebase';
 
 export default function LoginPage({ auth, onLogin }) {
     const LOADING_MESSAGE = "Loading Google's authentication.";
@@ -23,9 +24,16 @@ export default function LoginPage({ auth, onLogin }) {
                     date: loginTime.toLocaleDateString(),
                     time: loginTime.toLocaleTimeString(),
                 };
+
+                await addDoc(collection(db, 'loginHistory'), loginHistory);
+                console.log('Login history saved:', loginHistory);
             }
+              } catch (error) {
+            console.error('Error logging in:', error);
         }
-    }
+        
+        };
+    
         
     return (
         <PageWrapper>
