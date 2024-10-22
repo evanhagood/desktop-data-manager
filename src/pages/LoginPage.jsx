@@ -2,40 +2,11 @@ import React from 'react';
 import Button from '../components/Button'; // Ensure path is correct
 import PageWrapper from './PageWrapper';
 import { GoogleIcon, LizardIcon } from '../assets/icons';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
-import { auth, signInWithGoogle } from '../firebase';
-import { auth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { addDocToCollection } from '../firestore'; 
 
 export default function LoginPage({ auth, onLogin }) {
     const LOADING_MESSAGE = "Loading Google's authentication.";
     const LOGIN_MESSAGE = 'Click login to sign in with your ASURITE ID.';
 
-
-    const handleLogin = async () => {
-        try {
-            const provider = new GoogleAuthProvider();
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-
-            if (user) {
-                const email = user.email; 
-                const loginTime = new Date();  
-
-                const loginHistory = {
-                    email: email,
-                    date: loginTime.toLocaleDateString(),
-                    time: loginTime.toLocaleTimeString(),
-                };
-
-                await addDocToCollection('loginHistory', loginHistory);
-                console.log('Login history saved:', loginHistory);
-            }
-        } catch (error) {
-            console.error('Error logging in:', error);
-        }
-    };
-        
     return (
         <PageWrapper>
             {/* Header Section */}

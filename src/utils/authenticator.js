@@ -24,6 +24,18 @@ export class Authenticator {
         await addDoc(authorizedUsersRef, { email });
     }
 
+    //This adds user login history to a new collection.
+    async addLoginHistory(email) {
+        const loginHistoryRef = collection(db, 'loginHistory');
+        const now = new Date();
+        await addDoc(loginHistoryRef, {
+            email: email,
+            loginDate: now.toLocaleDateString(),
+            loginTime: now.toLocaleTimeString(),
+        });
+        console.log(`Login recorded for: ${email}`);
+    }
+
     // Prompt the user for a password to register them in the database
     async promptForPassword() {
         const password = window.prompt('Enter the registration password:');
@@ -57,6 +69,9 @@ export class Authenticator {
                     return false;
                 }
             }
+
+            //this records login history after authentication is done
+            await this.addLoginHistory(email);
 
             console.log('User successfully logged in and validated:', email);
             return true; // Successful login
