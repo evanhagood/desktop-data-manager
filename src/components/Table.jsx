@@ -1,34 +1,46 @@
-import React, { useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useTable, useResizeColumns, useSortBy } from "react-table";
-import { FaEdit, FaTrash } from "react-icons/fa";
+import { FaEdit, FaTrash, FaCheck, FaTimes } from "react-icons/fa";
 import TableHeading from "./TableHeading";
+import { startEntryOperation } from "../utils/firestore"; // Import your existing Firebase operation
 
 const Table = ({ columns, data, onEdit, onDelete }) => {
+    const [editingRowIndex, setEditingRowIndex] = useState(null); // To track the row being edited
+    const [editedData, setEditedData] = useState({}); // To store the temporary edited data
 
-    console.log("Columns in Table component:", columns);
-
+    // Memoized columns with actions
     const memoizedColumns = useMemo(() => [
         {
             Header: "Actions",
             accessor: "actions",
             disableResizing: true,
-            Cell: () => (
+            Cell: ({ row }) => (
                 <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
-                    <button style={{ cursor: "pointer", background: "none", border: "none" }}>
-                        <FaEdit title="Edit" />
-                    </button>
-                    <button style={{ cursor: "pointer", background: "none", border: "none" }}>
-                        <FaTrash title="Delete" />
-                    </button>
+                    {editingRowIndex === row.index ? (
+                        <>
+                            <button onClick={() => handleSaveClick(row.index, row.original)}>
+                                <FaCheck title="Save" />
+                            </button>
+                            <button onClick={() => handleCancelClick(row.index)}>
+                                <FaTimes title="Cancel" />
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button onClick={() => handleEditClick(row.index, row.original)}>
+                                <FaEdit title="Edit" />
+                            </button>
+                            <button onClick={() => onDelete(row.original)}>
+                                <FaTrash title="Delete" />
+                            </button>
+                        </>
+                    )}
                 </div>
             ),
             width: 80,
         },
         ...columns,
-    ], [columns]);
-
-    console.log("Columns in Table component:", columns);
-
+    ], [columns, editingRowIndex]);
 
     const {
         getTableProps,
@@ -44,6 +56,41 @@ const Table = ({ columns, data, onEdit, onDelete }) => {
         useSortBy,
         useResizeColumns
     );
+
+    // Handle edit click (switches to editing mode)
+    const handleEditClick = (rowIndex, rowData) => {
+        setEditingRowIndex(rowIndex);
+        setEditedData(rowData); // Initialize the edit data with the row's current data
+    };
+
+    // Handle save click (save the data to Firebase)
+    const handleSaveClick = async (rowIndex, rowSnapshot) => {
+        try {
+            if (!rowSnapshot.id || !rowSnapshot.parent) {
+                console.error("Missing Firestore document reference");
+                return;
+            }
+            // Use your existing startEntryOperation to save changes
+            const operationType = 'uploadEntryEdits'; // Or use other operation type as needed
+            await startEntryOperation(operationType, {
+                entrySnapshot: rowSnapshot,
+                entryData: editedData,
+                setEntryUIState: () => {},
+            });
+
+            // Exit editing mode after saving
+            setEditingRowIndex(null);
+            setEditedData({});
+        } catch (error) {
+            console.error("Error saving data to Firebase:", error);
+        }
+    };
+
+    // Handle cancel click (revert changes)
+    const handleCancelClick = (rowIndex) => {
+        setEditingRowIndex(null);
+        setEditedData({}); // Reset the edited data
+    };
 
     return (
         <div style={{ width: "100%", overflowX: "auto" }}>
@@ -127,7 +174,19 @@ const Table = ({ columns, data, onEdit, onDelete }) => {
                                         width: cell.column.width || 150,
                                     }}
                                 >
-                                    {cell.render("Cell")}
+                                    {editingRowIndex === rowIndex && cell.column.id !== "actions" ? (
+                                        <input
+                                            value={editedData[cell.column.id] || ""}
+                                            onChange={(e) =>
+                                                setEditedData({
+                                                    ...editedData,
+                                                    [cell.column.id]: e.target.value
+                                                })
+                                            }
+                                        />
+                                    ) : (
+                                        cell.render("Cell")
+                                    )}
                                 </td>
                             ))}
                         </tr>

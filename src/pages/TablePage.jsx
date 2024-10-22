@@ -58,11 +58,8 @@ export default function TablePage() {
         loadBatch();
     }, [tableName, batchSize, currentProject, environment, rerender]);
 
-    // Define columns based on the selected table type's specific fields
     const columns = useMemo(() => {
         const fields = FIELD_MAPPINGS[tableName] || [];
-        console.log("Current Table Name:", tableName);  // Ensure this prints "Arthropod" when that tab is active
-        console.log("Fields for column creation:", fields);  // Check fields here
         return fields.map((field) => ({
             Header: field,
             accessor: field
