@@ -16,6 +16,7 @@ export class Table extends Component {
             columnWidths: this.initializeColumnWidths(),
         };
         this.resizingColumn = createRef();
+         this.forceUpdateLayout = this.forceUpdateLayout.bind(this);
     }
 
     componentDidMount() {
