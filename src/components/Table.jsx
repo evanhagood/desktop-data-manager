@@ -111,75 +111,75 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
                 </button>
             </div>
             <table
-                style={{
-                    width: '100%',
-                    borderCollapse: 'separate',
-                    borderSpacing: 0,
-                    tableLayout: 'fixed',
-                }}
-            >
-                <thead>
-                    <tr>
-                        <th scope="col" style={{ width: 100, textAlign: 'center' }}>
-                            Actions
+    style={{
+        width: '100%',
+        borderCollapse: 'separate',
+        borderSpacing: 0,
+        tableLayout: 'fixed',
+    }}
+>
+    <thead>
+        <tr>
+            <th scope="col" style={{ width: 100, textAlign: 'center' }}>
+                Actions
+            </th>
+            {labels.map(
+                (label) =>
+                    columns[label]?.show && (
+                        <th
+                            key={label}
+                            scope="col"
+                            onClick={() => toggleSortDirection(label)}
+                            style={{
+                                width: columnWidths[label],
+                                minWidth: '20px',
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                                textOverflow: 'ellipsis',
+                                position: 'relative',
+                                cursor: 'pointer',
+                                borderBottom: '1px solid black',
+                                display: 'flex',
+                                alignItems: 'center',
+                            }}
+                        >
+                            <span>{label}</span>
+                            {sortedColumn === label && (
+                                <span style={{ marginLeft: '5px' }}>
+                                    {sortDirection === 'asc' ? '↑' : '↓'}
+                                </span>
+                            )}
+                            <div
+                                style={{
+                                    position: 'absolute',
+                                    right: 0,
+                                    top: 0,
+                                    height: '100%',
+                                    width: '8px',
+                                    backgroundColor: '#E2E8F0',
+                                    cursor: 'col-resize',
+                                    transform: 'translateX(50%)',
+                                }}
+                                onMouseDown={(e) => startResizing(label, e)}
+                            />
                         </th>
-                        {labels.map(
-                            (label) =>
-                                columns[label]?.show && (
-                                    <th
-                                        key={label}
-                                        scope="col"
-                                        style={{
-                                            width: columnWidths[label],
-                                            minWidth: '20px',
-                                            overflow: 'hidden',
-                                            whiteSpace: 'nowrap',
-                                            textOverflow: 'ellipsis',
-                                            position: 'relative',
-                                            cursor: 'pointer',
-                                            borderBottom: '1px solid black',
-                                        }}
-                                    >
-                                        <div
-                                            style={{ display: 'flex', alignItems: 'center' }}
-                                            onClick={() => toggleSortDirection(label)}
-                                        >
-                                            <span>{label}</span>
-                                            {sortedColumn === label && (
-                                                <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                                            )}
-                                        </div>
-                                        <div
-                                            style={{
-                                                position: 'absolute',
-                                                right: 0,
-                                                top: 0,
-                                                height: '100%',
-                                                width: '8px',
-                                                backgroundColor: '#E2E8F0',
-                                                cursor: 'col-resize',
-                                                transform: 'translateX(50%)',
-                                            }}
-                                            onMouseDown={(e) => startResizing(label, e)}
-                                        />
-                                    </th>
-                                )
-                        )}
-                    </tr>
-                </thead>
-                <motion.tbody initial="hidden" animate="visible" variants={tableBody}>
-                    {sortedEntries.map((entry, index) => (
-                        <TableEntry
-                            key={entry.id}
-                            index={index}
-                            entrySnapshot={entry}
-                            shownColumns={labels.filter((label) => columns[label]?.show)}
-                            tableName={name}
-                            removeEntry={() => confirmAndRemoveEntry(entry)}
-                        />
-                    ))}
-                </motion.tbody>
-            </table>
+                    )
+            )}
+        </tr>
+    </thead>
+    <motion.tbody initial="hidden" animate="visible" variants={tableBody}>
+        {sortedEntries.map((entry, index) => (
+            <TableEntry
+                key={entry.id}
+                index={index}
+                entrySnapshot={entry}
+                shownColumns={labels.filter((label) => columns[label]?.show)}
+                tableName={name}
+                removeEntry={() => confirmAndRemoveEntry(entry)}
+            />
+        ))}
+    </motion.tbody>
+</table>
         </div>
     );
 };
