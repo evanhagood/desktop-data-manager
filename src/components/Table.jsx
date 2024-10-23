@@ -1,5 +1,4 @@
-// Table.js
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { TableEntry } from './TableEntry';
 import { tableBody } from '../utils/variants';
@@ -7,12 +6,8 @@ import { getKey } from '../const/tableLabels';
 import { throttle } from 'lodash';
 
 export const Table = ({ labels, columns, entries, name, setEntries }) => {
-    const initializeColumnWidths = () => {
-        return labels.reduce((acc, label) => {
-            acc[label] = 90;
-            return acc;
-        }, {});
-    };
+    const initializeColumnWidths = () =>
+        labels.reduce((acc, label) => ({ ...acc, [label]: 90 }), {});
 
     const [sortedColumn, setSortedColumn] = useState(null);
     const [sortDirection, setSortDirection] = useState('asc');
@@ -20,18 +15,15 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
     const [isDataLoaded, setIsDataLoaded] = useState(false);
     const resizingColumn = useRef(null);
 
-    const forceUpdateLayout = () => {
+    const forceUpdateLayout = useCallback(() => {
         setColumnWidths((prev) => ({ ...prev }));
-    };
+    }, []);
 
     useEffect(() => {
         forceUpdateLayout();
         window.addEventListener('resize', forceUpdateLayout);
-        return () => {
-            window.removeEventListener('resize', forceUpdateLayout);
-            cleanupResizeEvents();
-        };
-    }, []);
+        return () => window.removeEventListener('resize', forceUpdateLayout);
+    }, [forceUpdateLayout]);
 
     useEffect(() => {
         if (entries.length > 0 && !isDataLoaded) {
@@ -40,44 +32,36 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
         }
     }, [entries, isDataLoaded]);
 
-    const cleanupResizeEvents = () => {
-        window.removeEventListener('mousemove', throttledMouseMove);
-        window.removeEventListener('mouseup', stopResizing);
-    };
-
-    const resetColumns = () => {
+    const resetColumns = useCallback(() => {
         setSortedColumn(null);
         setSortDirection('asc');
         setColumnWidths(initializeColumnWidths());
-    };
+    }, [labels]);
 
     const getValue = (entry, column) => {
         const key = getKey(column, name);
         return entry.data?.()[key] || 'N/A';
     };
 
-    const sortEntries = (entriesToSort, column, direction) => {
-        const sorted = [...entriesToSort].sort((a, b) => {
-            const valueA = getValue(a, column);
-            const valueB = getValue(b, column);
-            if (valueA > valueB) return direction === 'asc' ? 1 : -1;
-            if (valueA < valueB) return direction === 'asc' ? -1 : 1;
-            return 0;
-        });
-        return sorted;
-    };
+    const sortEntries = useCallback(
+        (entriesToSort, column, direction) =>
+            [...entriesToSort].sort((a, b) => {
+                const valueA = getValue(a, column);
+                const valueB = getValue(b, column);
+                if (valueA > valueB) return direction === 'asc' ? 1 : -1;
+                if (valueA < valueB) return direction === 'asc' ? -1 : 1;
+                return 0;
+            }),
+        [name]
+    );
 
-    const toggleSortDirection = (column) => {
+    const toggleSortDirection = useCallback((column) => {
         setSortedColumn(column);
         setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
-    };
+    }, []);
 
     const startResizing = (label, e) => {
-        resizingColumn.current = {
-            label,
-            startX: e.clientX,
-            startWidth: columnWidths[label],
-        };
+        resizingColumn.current = { label, startX: e.clientX, startWidth: columnWidths[label] };
         window.addEventListener('mousemove', throttledMouseMove);
         window.addEventListener('mouseup', stopResizing);
     };
@@ -96,9 +80,13 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
         cleanupResizeEvents();
     };
 
+    const cleanupResizeEvents = () => {
+        window.removeEventListener('mousemove', throttledMouseMove);
+        window.removeEventListener('mouseup', stopResizing);
+    };
+
     const confirmAndRemoveEntry = (entry) => {
-        const confirmation = window.confirm('Are you sure you want to delete this entry?');
-        if (confirmation) {
+        if (window.confirm('Are you sure you want to delete this entry?')) {
             setEntries(entries.filter((e) => e !== entry));
         }
     };
@@ -117,8 +105,7 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
                         borderRadius: '8px',
                         cursor: 'pointer',
                     }}
-                    onMouseOver={(e) => (e.target.style.backgroundColor = '#4299E1')}
-                    onMouseOut={(e) => (e.target.style.backgroundColor = '#90CDF4')}
+                    className="hover:bg-blue-500"
                 >
                     Reset Columns
                 </button>
@@ -133,12 +120,15 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
             >
                 <thead>
                     <tr>
-                        <th style={{ width: 100, textAlign: 'center' }}>Actions</th>
+                        <th scope="col" style={{ width: 100, textAlign: 'center' }}>
+                            Actions
+                        </th>
                         {labels.map(
                             (label) =>
                                 columns[label]?.show && (
                                     <th
                                         key={label}
+                                        scope="col"
                                         style={{
                                             width: columnWidths[label],
                                             minWidth: '20px',
@@ -193,3 +183,4 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
         </div>
     );
 };
+
