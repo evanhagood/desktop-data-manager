@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { TableEntry } from './TableEntry';
 import { tableBody } from '../utils/variants';
 import { getKey } from '../const/tableLabels';
-import './Table.css';
 import { throttle } from 'lodash';
 
 export const Table = ({ labels, columns, entries, name, setEntries }) => {
@@ -22,7 +21,7 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
     const resizingColumn = useRef(null);
 
     const forceUpdateLayout = () => {
-        setColumnWidths(prev => ({ ...prev }));
+        setColumnWidths((prev) => ({ ...prev }));
     };
 
     useEffect(() => {
@@ -70,7 +69,7 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
 
     const toggleSortDirection = (column) => {
         setSortedColumn(column);
-        setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+        setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     };
 
     const startResizing = (label, e) => {
@@ -87,7 +86,7 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
         if (!resizingColumn.current) return;
         const { label, startX, startWidth } = resizingColumn.current;
         const newWidth = Math.max(startWidth + (e.clientX - startX), 10);
-        setColumnWidths(prev => ({ ...prev, [label]: newWidth }));
+        setColumnWidths((prev) => ({ ...prev, [label]: newWidth }));
     };
 
     const throttledMouseMove = throttle(handleMouseMove, 50);
@@ -107,52 +106,74 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
     const sortedEntries = sortEntries(entries, sortedColumn, sortDirection);
 
     return (
-        <div className="table-container">
-            <div className="flex justify-end mb-4">
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
+            <div style={{ display: 'flex', justifyContent: 'end', marginBottom: '16px' }}>
                 <button
                     onClick={resetColumns}
-                    className="px-2 py-1 bg-blue-300 text-white rounded hover:bg-blue-500"
+                    style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#90CDF4',
+                        color: 'white',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                    }}
+                    onMouseOver={(e) => (e.target.style.backgroundColor = '#4299E1')}
+                    onMouseOut={(e) => (e.target.style.backgroundColor = '#90CDF4')}
                 >
                     Reset Columns
                 </button>
             </div>
             <table
-                className="w-full border-separate border-spacing-0"
-                style={{ tableLayout: 'fixed' }}
+                style={{
+                    width: '100%',
+                    borderCollapse: 'separate',
+                    borderSpacing: 0,
+                    tableLayout: 'fixed',
+                }}
             >
                 <thead>
                     <tr>
                         <th style={{ width: 100, textAlign: 'center' }}>Actions</th>
-                        {labels.map((label) =>
-                            columns[label]?.show && (
-                                <th
-                                    key={label}
-                                    style={{
-                                        width: columnWidths[label],
-                                        minWidth: '20px',
-                                        overflow: 'hidden',
-                                        whiteSpace: 'nowrap',
-                                        textOverflow: 'ellipsis',
-                                        position: 'relative',
-                                    }}
-                                    className="cursor-pointer border-b"
-                                >
-                                    <div
-                                        className="flex items-center justify-start"
-                                        onClick={() => toggleSortDirection(label)}
+                        {labels.map(
+                            (label) =>
+                                columns[label]?.show && (
+                                    <th
+                                        key={label}
+                                        style={{
+                                            width: columnWidths[label],
+                                            minWidth: '20px',
+                                            overflow: 'hidden',
+                                            whiteSpace: 'nowrap',
+                                            textOverflow: 'ellipsis',
+                                            position: 'relative',
+                                            cursor: 'pointer',
+                                            borderBottom: '1px solid black',
+                                        }}
                                     >
-                                        <span>{label}</span>
-                                        {sortedColumn === label && (
-                                            <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                                        )}
-                                    </div>
-                                    <div
-                                        className="absolute right-0 top-0 h-full w-2 cursor-col-resize bg-gray-300"
-                                        style={{ transform: 'translateX(50%)' }}
-                                        onMouseDown={(e) => startResizing(label, e)}
-                                    />
-                                </th>
-                            )
+                                        <div
+                                            style={{ display: 'flex', alignItems: 'center' }}
+                                            onClick={() => toggleSortDirection(label)}
+                                        >
+                                            <span>{label}</span>
+                                            {sortedColumn === label && (
+                                                <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                                            )}
+                                        </div>
+                                        <div
+                                            style={{
+                                                position: 'absolute',
+                                                right: 0,
+                                                top: 0,
+                                                height: '100%',
+                                                width: '8px',
+                                                backgroundColor: '#E2E8F0',
+                                                cursor: 'col-resize',
+                                                transform: 'translateX(50%)',
+                                            }}
+                                            onMouseDown={(e) => startResizing(label, e)}
+                                        />
+                                    </th>
+                                )
                         )}
                     </tr>
                 </thead>
