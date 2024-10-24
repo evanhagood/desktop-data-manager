@@ -1,8 +1,9 @@
-import React from 'react';
 import classNames from 'classnames';
 import { SortAscIcon, SortDescIcon } from '../assets/icons';
+import React from 'react';
 
-export const TableHeading = ({ label, active, sortDirection, onClick, width, resizerProps }) => {
+export const TableHeading = ({ label, active, sortDirection, onClick }) => {
+
     const getSortIcon = () => {
         if (active && sortDirection) {
             return sortDirection === 'asc' ? <SortAscIcon /> : <SortDescIcon />;
@@ -10,43 +11,16 @@ export const TableHeading = ({ label, active, sortDirection, onClick, width, res
     };
 
     const thClasses = classNames(
-        'sticky top-0 bg-neutral-900 z-10 border-b border-neutral-800 dark:bg-neutral-950 p-2 font-semibold cursor-pointer',
+        'sticky top-0 bg-white z-10 border-b border-neutral-800 dark:bg-neutral-950 p-1 font-semibold cursor-pointer',
         { 'text-asu-maroon dark:text-asu-gold': active }
     );
 
     return (
-        <th
-            className={thClasses}
-            onClick={onClick}
-            style={{
-                textAlign: "center",
-                width: `${width}px`, // Ensuring consistent width
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                position: "relative",
-            }}
-        >
-            <div style={{ display: "flex", alignItems: "center" }}>
-                <span style={{ flex: 1, marginRight: "5px" }}>{label}</span>
-                <span>{getSortIcon()}</span>
+        <th className={thClasses} onClick={onClick}>
+            <div className="flex items-center justify-start pl-2">
+                <span className="flex-1 mr-1 whitespace-nowrap">{label}</span>
+                <span className="flex-4 text-xl ml-1">{getSortIcon()}</span>
             </div>
-            <div
-                {...resizerProps}
-                style={{
-                    position: "absolute",
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: "5px",
-                    cursor: "col-resize",
-                    backgroundColor: "transparent",
-                    zIndex: 1,
-                }}
-                onClick={(e) => e.stopPropagation()} // Prevent sorting on resize click
-            />
         </th>
     );
 };
-
-export default TableHeading;

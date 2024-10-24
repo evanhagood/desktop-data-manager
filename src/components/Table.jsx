@@ -1,199 +1,190 @@
-import React, { useState, useMemo } from "react";
-import { useTable, useResizeColumns, useSortBy } from "react-table";
-import { FaEdit, FaTrash, FaCheck, FaTimes } from "react-icons/fa";
-import TableHeading from "./TableHeading";
-import { startEntryOperation } from "../utils/firestore";
+import React, { useState, useRef } from 'react';
+import { TableEntry } from './TableEntry';
+import { TableHeading } from './TableHeading';
+import { tableBody } from '../utils/variants';
+import { getKey } from '../const/tableLabels';
 
-const Table = ({ columns, data, onEdit, onDelete }) => {
-    const [editingRowIndex, setEditingRowIndex] = useState(null);
-    const [editedData, setEditedData] = useState({});
+export const Table = ({ labels, columns, entries, name, setEntries }) => {
+    const [sortedColumn, setSortedColumn] = useState(null);
+    const [sortDirection, setSortDirection] = useState('asc');
+    const [columnWidths, setColumnWidths] = useState({});
+    const [resizing, setResizing] = useState(null);
+    const tableRef = useRef(null);
+    const startXRef = useRef(null);
+    const startWidthRef = useRef(null);
 
-    // Memoized columns with actions
-    const memoizedColumns = useMemo(() => [
-        {
-            Header: "Actions",
-            accessor: "actions",
-            disableResizing: true,
-            Cell: ({ row }) => (
-                <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
-                    {editingRowIndex === row.index ? (
-                        <>
-                            <button onClick={() => handleSaveClick(row.index, row.original)}>
-                                <FaCheck title="Save" />
-                            </button>
-                            <button onClick={() => handleCancelClick(row.index)}>
-                                <FaTimes title="Cancel" />
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <button onClick={() => handleEditClick(row.index, row.original)}>
-                                <FaEdit title="Edit" />
-                            </button>
-                            <button onClick={() => onDelete(row.original)}>
-                                <FaTrash title="Delete" />
-                            </button>
-                        </>
-                    )}
-                </div>
-            ),
-            width: 80,
-        },
-        ...columns,
-    ], [columns, editingRowIndex]);
-
-    const {
-        getTableProps,
-        getTableBodyProps,
-        headerGroups,
-        rows,
-        prepareRow,
-    } = useTable(
-        {
-            columns: memoizedColumns,
-            data,
-        },
-        useSortBy,
-        useResizeColumns
-    );
-
-    // Handle edit click (switches to editing mode)
-    const handleEditClick = (rowIndex, rowData) => {
-        setEditingRowIndex(rowIndex);
-        setEditedData(rowData);
-    };
-
-    // Handle save click (save the data to Firebase)
-    const handleSaveClick = async (rowIndex, rowSnapshot) => {
-        try {
-            if (!rowSnapshot.id || !rowSnapshot.parent) {
-                console.error("Missing Firestore document reference");
-                return;
+    const sortedEntries = (entries, column, direction) => {
+        const sortedEntries = [...entries];
+        sortedEntries.sort((a, b) => {
+            if (getValue(a, column) > getValue(b, column)) {
+                return (direction === 'asc') ? 1 : -1;
             }
-            // Use your existing startEntryOperation to save changes
-            const operationType = 'uploadEntryEdits'; // Or use other operation type as needed
-            await startEntryOperation(operationType, {
-                entrySnapshot: rowSnapshot,
-                entryData: editedData,
-                setEntryUIState: () => {},
-            });
+            if (getValue(a, column) < getValue(b, column)) {
+                return (direction === 'asc') ? -1 : 1;
+            }
+            return 0;
+        });
+        return sortedEntries;
+    };
 
-            // Exit editing mode after saving
-            setEditingRowIndex(null);
-            setEditedData({});
-        } catch (error) {
-            console.error("Error saving data to Firebase:", error);
+    const sortByColumn = (column) => {
+        const newSortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        setSortedColumn(column);
+        setSortDirection(newSortDirection);
+    };
+
+    const getValue = (entry, column) => {
+        const key = getKey(column, name);
+        const value = entry.data?.()[key] || 'N/A';
+        return value;
+    };
+
+    const startResizing = (e, columnIndex) => {
+        setResizing(columnIndex);
+        startXRef.current = e.clientX;
+        startWidthRef.current = columnWidths[columnIndex] || (columnIndex === 'actions' ? 50 : 80);
+
+        e.preventDefault();
+        e.stopPropagation();
+    };
+
+    const handleMouseMove = (e) => {
+        if (resizing === null) return;
+
+        const currentWidth = startWidthRef.current;
+        const mouseMove = e.clientX - startXRef.current;
+        const newWidth = Math.max(20, currentWidth + mouseMove);
+
+        requestAnimationFrame(() => {
+            setColumnWidths(prev => ({
+                ...prev,
+                [resizing]: newWidth
+            }));
+        });
+
+        e.preventDefault();
+    };
+    const stopResizing = () => {
+        setResizing(null);
+        startXRef.current = null;
+        startWidthRef.current = null;
+    };
+    React.useEffect(() => {
+        if (resizing !== null) {
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', stopResizing);
+            return () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', stopResizing);
+            };
         }
+    }, [resizing]);
+
+    const defaultWidths = {
+        actions: 50,
+        ...labels.reduce((acc, _, index) => ({
+            ...acc,
+            [index]: 80
+        }), {})
     };
 
-    // Handle cancel click (revert changes)
-    const handleCancelClick = (rowIndex) => {
-        setEditingRowIndex(null);
-        setEditedData({}); // Reset the edited data
+    // Add reset function
+    const resetColumnWidths = () => {
+        setColumnWidths(defaultWidths);
     };
+
 
     return (
-        <div style={{ width: "100%", overflowX: "auto" }}>
-            <table
-                {...getTableProps()}
-                style={{
-                    width: "100%",
-                    borderCollapse: "collapse",
-                    fontFamily: "sans-serif",
-                    fontSize: "13px",
-                    backgroundColor: "#1a1a1a",
-                    color: "#d1d1d1",
-                }}
-            >
-                {/* Table Header */}
-                <thead>
-                {headerGroups.map(headerGroup => (
-                    <tr {...headerGroup.getHeaderGroupProps()}>
-                        {headerGroup.headers.map(column => (
-                            <th
-                                {...column.getHeaderProps(column.getSortByToggleProps())}
-                                style={{
-                                    padding: "10px",
-                                    fontWeight: "bold",
-                                    textAlign: "center",
-                                    backgroundColor: "#2b2b2b",
-                                    borderBottom: "2px solid #444",
-                                    position: "relative",
-                                    whiteSpace: "nowrap",
-                                    width: column.width || 150,
-                                }}
-                            >
-                                <TableHeading
-                                    label={column.render("Header")}
-                                    active={column.isSorted}
-                                    sortDirection={column.isSortedDesc ? 'desc' : 'asc'}
-                                />
-                                {column.canResize && (
-                                    <div
-                                        {...column.getResizerProps()}
-                                        style={{
-                                            width: "5px",
-                                            height: "100%",
-                                            position: "absolute",
-                                            right: 0,
-                                            top: 0,
-                                            cursor: "col-resize",
-                                            backgroundColor: column.isResizing ? "#ddd" : "transparent",
-                                            zIndex: 1,
-                                        }}
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
-                                )}
-                            </th>
-                        ))}
-                    </tr>
-                ))}
-                </thead>
-
-                {/* Table Body */}
-                <tbody {...getTableBodyProps()}>
-                {rows.map((row, rowIndex) => {
-                    prepareRow(row);
-                    return (
-                        <tr
-                            {...row.getRowProps()}
+        <div className="w-full overflow-x-auto relative border-b border-neutral-400">
+            <div className="flex justify-end mb-1"> {/* Add button container */}
+                <button
+                    className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded border border-gray-300 transition-colors"
+                    onClick={resetColumnWidths}
+                >
+                    Reset Columns
+                </button>
+            </div>
+            <div className="min-w-full inline-block">
+                <table
+                    ref={tableRef}
+                    className="w-full table-auto border-separate border-spacing-0"
+                    style={{ tableLayout: 'fixed' }}
+                >
+                    <thead>
+                    <tr>
+                        <th
+                            className="relative p-2 font-semibold text-gray-600 border-b text-center"
                             style={{
-                                backgroundColor: rowIndex % 2 === 0 ? "#333333" : "#2b2b2b",
+                                width: columnWidths['actions'] || 50,
+                                minWidth: 50,
+                                position: 'relative' // Ensure positioning context
                             }}
                         >
-                            {row.cells.map(cell => (
-                                <td
-                                    {...cell.getCellProps()}
-                                    style={{
-                                        padding: "10px",
-                                        textAlign: "center",
-                                        whiteSpace: "nowrap",
-                                        overflow: "hidden",
-                                        textOverflow: "ellipsis",
-                                        borderBottom: "1px solid #444",
-                                        width: cell.column.width || 150,
-                                    }}
-                                >
-                                    {editingRowIndex === rowIndex && cell.column.id !== "actions" ? (
-                                        <input
-                                            value={editedData[cell.column.id] || ""}
-                                            onChange={(e) =>
-                                                setEditedData({
-                                                    ...editedData,
-                                                    [cell.column.id]: e.target.value
-                                                })
-                                            }
+                            Actions
+                            <div
+                                className="absolute top-0 h-full cursor-col-resize hover:bg-blue-400 z-10"
+                                style={{
+                                    right: '-3px',
+                                    width: '6px',  // Wider handle
+                                    transform: 'translateX(50%)', // Center the handle between columns
+                                }}
+                                onMouseDown={(e) => startResizing(e, 'actions')}
+                            />
+                        </th>
+                        {labels && labels.map((label, index) =>
+                                columns[label]?.show && (
+                                    <th
+                                        key={label}
+                                        className="relative"
+                                        style={{
+                                            width: columnWidths[index] || 80,
+                                            minWidth: 30,
+                                            position: 'relative' // Ensure positioning context
+                                        }}
+                                    >
+                                        <TableHeading
+                                            label={label}
+                                            active={sortedColumn === label}
+                                            sortDirection={sortDirection}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                sortByColumn(label);
+                                            }}
                                         />
-                                    ) : (
-                                        cell.render("Cell")
-                                    )}
-                                </td>
-                            ))}
-                        </tr>
-                    );
-                })}
-                </tbody>
-            </table>
+                                        <div
+                                            className="absolute top-0 h-full cursor-col-resize hover:bg-red-400 z-10"
+                                            style={{
+                                                right: '-3px',
+                                                width: '16px',  // Wider handle
+                                                transform: 'translateX(50%)', // Center the handle between columns
+                                            }}
+                                            onMouseDown={(e) => {
+                                                e.stopPropagation();
+                                                startResizing(e, index);
+                                            }}
+                                        />
+                                    </th>
+                                )
+                        )}
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {sortedEntries(entries, sortedColumn, sortDirection).map((entry, index) => (
+                        <TableEntry
+                            index={index}
+                            key={entry.id}
+                            entrySnapshot={entry}
+                            shownColumns={[...labels].filter(label => columns[label]?.show)}
+                            tableName={name}
+                            removeEntry={() => {
+                                setEntries(entries.filter(e => e !== entry));
+                            }}
+                            columnWidths={columnWidths}
+                        />
+                    ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };
