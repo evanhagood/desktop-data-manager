@@ -1,198 +1,193 @@
 // Table.js
-import React, { Component, createRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef } from 'react';
 import { TableEntry } from './TableEntry';
+import { TableHeading } from './TableHeading';
 import { tableBody } from '../utils/variants';
 import { getKey } from '../const/tableLabels';
-import './Table.css';
-import { throttle } from 'lodash'; // Throttle event handlers to optimize performance
 
-export class Table extends Component {
-    constructor(props) {
-        super(props);
-        this.state = {
-            sortedColumn: null,
-            sortDirection: 'asc',
-            columnWidths: this.initializeColumnWidths(),
-        };
-        this.resizingColumn = createRef();
-    }
+export const Table = ({ labels, columns, entries, name, setEntries }) => {
+    const [sortedColumn, setSortedColumn] = useState(null);
+    const [sortDirection, setSortDirection] = useState('asc');
+    const [columnWidths, setColumnWidths] = useState({});
+    const [resizing, setResizing] = useState(null);
+    const tableRef = useRef(null);
+    const startXRef = useRef(null);
+    const startWidthRef = useRef(null);
 
-    componentDidMount() {
-        this.forceUpdateLayout(); // Force initial layout update
-        window.addEventListener('resize', this.forceUpdateLayout);
-    }
-
-    componentDidUpdate(prevProps) {
-        if (prevProps.entries !== this.props.entries && this.props.entries.length > 0) {
-            if (!this.state.isDataLoaded) {
-                this.setState({ isDataLoaded: true }, this.resetColumns);
+    const sortedEntries = (entries, column, direction) => {
+        const sortedEntries = [...entries];
+        sortedEntries.sort((a, b) => {
+            if (getValue(a, column) > getValue(b, column)) {
+                return (direction === 'asc') ? 1 : -1;
             }
-        }
-    }
-
-    componentWillUnmount() {
-        window.removeEventListener('resize', this.forceUpdateLayout);
-        this.cleanupResizeEvents(); // Ensure all listeners are removed
-    }
-
-    forceUpdateLayout = () => {
-        this.setState((prevState) => ({
-            columnWidths: { ...prevState.columnWidths },
-        }));
-    };
-
-    initializeColumnWidths = () => {
-        const { labels } = this.props;
-        return labels.reduce((acc, label) => {
-            acc[label] = 90; // Default width: 100px
-            return acc;
-        }, {});
-    };
-
-    resetColumns = () => {
-        this.setState({
-            sortedColumn: null,
-            sortDirection: 'asc',
-            columnWidths: this.initializeColumnWidths(),
-        });
-    };
-
-    sortEntries = (entries, column, direction) => {
-        const sorted = [...entries].sort((a, b) => {
-            const valueA = this.getValue(a, column);
-            const valueB = this.getValue(b, column);
-            if (valueA > valueB) return direction === 'asc' ? 1 : -1;
-            if (valueA < valueB) return direction === 'asc' ? -1 : 1;
+            if (getValue(a, column) < getValue(b, column)) {
+                return (direction === 'asc') ? -1 : 1;
+            }
             return 0;
         });
-        return sorted;
+        return sortedEntries;
     };
 
-    toggleSortDirection = (column) => {
-        this.setState((prevState) => ({
-            sortedColumn: column,
-            sortDirection: prevState.sortDirection === 'asc' ? 'desc' : 'asc',
-        }));
+    const sortByColumn = (column) => {
+        const newSortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+        setSortedColumn(column);
+        setSortDirection(newSortDirection);
     };
 
-    getValue = (entry, column) => {
-        const { name } = this.props;
+    const getValue = (entry, column) => {
         const key = getKey(column, name);
-        return entry.data?.()[key] || 'N/A';
+        const value = entry.data?.()[key] || 'N/A';
+        return value;
     };
 
-    startResizing = (label, e) => {
-        this.resizingColumn.current = {
-            label,
-            startX: e.clientX,
-            startWidth: this.state.columnWidths[label],
-        };
-        window.addEventListener('mousemove', this.throttledMouseMove);
-        window.addEventListener('mouseup', this.stopResizing);
+    const startResizing = (e, columnIndex) => {
+        setResizing(columnIndex);
+        startXRef.current = e.clientX;
+        startWidthRef.current = columnWidths[columnIndex] || (columnIndex === 'actions' ? 50 : 80);
+        
+        e.preventDefault();
+        e.stopPropagation();
     };
 
-    throttledMouseMove = throttle((e) => this.handleMouseMove(e), 50);
-
-    handleMouseMove = (e) => {
-        const { label, startX, startWidth } = this.resizingColumn.current;
-        const newWidth = Math.max(startWidth + (e.clientX - startX), 10); // Minimum width: 10px
-        this.setState((prevState) => ({
-            columnWidths: { ...prevState.columnWidths, [label]: newWidth },
-        }));
+    const handleMouseMove = (e) => {
+        if (resizing === null) return;
+    
+        const currentWidth = startWidthRef.current;
+        const mouseMove = e.clientX - startXRef.current;
+        const newWidth = Math.max(20, currentWidth + mouseMove);
+        
+        requestAnimationFrame(() => {
+            setColumnWidths(prev => ({
+                ...prev,
+                [resizing]: newWidth
+            }));
+        });
+    
+        e.preventDefault();
     };
-
-    stopResizing = () => {
-        this.resizingColumn.current = null;
-        this.cleanupResizeEvents();
+    const stopResizing = () => {
+        setResizing(null);
+        startXRef.current = null;
+        startWidthRef.current = null;
     };
-
-    cleanupResizeEvents = () => {
-        window.removeEventListener('mousemove', this.throttledMouseMove);
-        window.removeEventListener('mouseup', this.stopResizing);
-    };
- 
-    confirmAndRemoveEntry = (entry) => {
-        const { entries, setEntries } = this.props;
-        const confirmation = window.confirm('Are you sure you want to delete this entry?');
-        if (confirmation) {
-            setEntries(entries.filter((e) => e !== entry));
+    React.useEffect(() => {
+        if (resizing !== null) {
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', stopResizing);
+            return () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', stopResizing);
+            };
         }
+    }, [resizing]);
+
+    const defaultWidths = {
+        actions: 50,
+        ...labels.reduce((acc, _, index) => ({
+            ...acc,
+            [index]: 80
+        }), {})
+    };
+
+    // Add reset function
+    const resetColumnWidths = () => {
+        setColumnWidths(defaultWidths);
     };
 
 
-
-    render() {
-        const { labels, columns, entries, name, setEntries } = this.props;
-        const { sortedColumn, sortDirection, columnWidths } = this.state;
-
-        const sortedEntries = this.sortEntries(entries, sortedColumn, sortDirection);
-
-        return (
-            <div className="table-container">
-                <div className="flex justify-end mb-4">
-                    <button
-                        onClick={this.resetColumns}
-                        className="px-2 py-1 bg-blue-300 text-white rounded hover:bg-blue-500"
-                    >
-                        Reset Columns
-                    </button>
-                </div>
-                <table
-                    className="w-full border-separate border-spacing-0"
+    return (
+        <div className="w-full overflow-x-auto relative border-b border-neutral-400">
+               <div className="flex justify-end mb-1"> {/* Add button container */}
+                <button
+                    className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded border border-gray-300 transition-colors"
+                    onClick={resetColumnWidths}
+                >
+                    Reset Columns
+                </button>
+            </div>
+            <div className="min-w-full inline-block">
+                <table 
+                    ref={tableRef}
+                    className="w-full table-auto border-separate border-spacing-0"
                     style={{ tableLayout: 'fixed' }}
                 >
                     <thead>
                         <tr>
-                            <th style={{ width: 100, textAlign: 'center' }}>Actions</th>
-                            {labels.map((label) =>
+                            <th 
+                                className="relative p-2 font-semibold text-gray-600 border-b text-center"
+                                style={{ 
+                                    width: columnWidths['actions'] || 50, 
+                                    minWidth: 50,
+                                    position: 'relative' // Ensure positioning context
+                                }}
+                            >
+                                Actions
+                                <div
+                                    className="absolute top-0 h-full cursor-col-resize hover:bg-blue-400 z-10" 
+                                    style={{ 
+                                        right: '-3px',
+                                        width: '6px',  // Wider handle
+                                        transform: 'translateX(50%)', // Center the handle between columns
+                                    }}
+                                    onMouseDown={(e) => startResizing(e, 'actions')}
+                                />
+                            </th>
+                            {labels && labels.map((label, index) => 
                                 columns[label]?.show && (
-                                    <th
+                                    <th 
                                         key={label}
-                                        style={{
-                                            width: columnWidths[label],
-                                            minWidth: '20px',
-                                            overflow: 'hidden',
-                                            whiteSpace: 'nowrap',
-                                            textOverflow: 'ellipsis',
-                                            position: 'relative',
+                                        className="relative"
+                                        style={{ 
+                                            width: columnWidths[index] || 80,
+                                            minWidth: 30,
+                                            position: 'relative' // Ensure positioning context
                                         }}
-                                        className="cursor-pointer border-b"
                                     >
+                                        <TableHeading
+                                            label={label}
+                                            active={sortedColumn === label}
+                                            sortDirection={sortDirection}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                sortByColumn(label);
+                                            }}
+                                        />
                                         <div
-                                            className="flex items-center justify-start"
-                                            onClick={() => this.toggleSortDirection(label)}
-                                        >
-                                            <span>{label}</span>
-                                            {sortedColumn === label && (
-                                                <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
-                                            )}
-                                        </div>
-                                        <div
-                                            className="absolute right-0 top-0 h-full w-2 cursor-col-resize bg-gray-300"
-                                            style={{ transform: 'translateX(50%)' }}
-                                            onMouseDown={(e) => this.startResizing(label, e)}
+                                            className="absolute top-0 h-full cursor-col-resize hover:bg-red-400 z-10"
+                                            style={{ 
+                                                right: '-3px',
+                                                width: '16px',  // Wider handle
+                                                transform: 'translateX(50%)', // Center the handle between columns
+                                            }}
+                                            onMouseDown={(e) => {
+                                                e.stopPropagation();
+                                                startResizing(e, index);
+                                            }}
                                         />
                                     </th>
                                 )
                             )}
                         </tr>
                     </thead>
-                    <motion.tbody initial="hidden" animate="visible" variants={tableBody}>
-                        {sortedEntries.map((entry, index) => (
+                    <tbody>
+                        {sortedEntries(entries, sortedColumn, sortDirection).map((entry, index) => (
                             <TableEntry
-                                key={entry.id}
                                 index={index}
+                                key={entry.id}
                                 entrySnapshot={entry}
-                                shownColumns={labels.filter((label) => columns[label]?.show)}
+                                shownColumns={[...labels].filter(label => columns[label]?.show)}
                                 tableName={name}
-                                removeEntry={() => this.confirmAndRemoveEntry(entry)}
-                                
+                                removeEntry={() => {
+                                    setEntries(entries.filter(e => e !== entry));
+                                }}
+                                columnWidths={columnWidths}
                             />
                         ))}
-                    </motion.tbody>
+                    </tbody>
                 </table>
             </div>
-        );
-    }
-}
+        </div>
+    );
+};
+
+export default Table;
