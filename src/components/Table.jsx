@@ -2,11 +2,11 @@ import React, { useState, useMemo } from "react";
 import { useTable, useResizeColumns, useSortBy } from "react-table";
 import { FaEdit, FaTrash, FaCheck, FaTimes } from "react-icons/fa";
 import TableHeading from "./TableHeading";
-import { startEntryOperation } from "../utils/firestore"; // Import your existing Firebase operation
+import { startEntryOperation } from "../utils/firestore";
 
 const Table = ({ columns, data, onEdit, onDelete }) => {
-    const [editingRowIndex, setEditingRowIndex] = useState(null); // To track the row being edited
-    const [editedData, setEditedData] = useState({}); // To store the temporary edited data
+    const [editingRowIndex, setEditingRowIndex] = useState(null);
+    const [editedData, setEditedData] = useState({});
 
     // Memoized columns with actions
     const memoizedColumns = useMemo(() => [
@@ -60,7 +60,7 @@ const Table = ({ columns, data, onEdit, onDelete }) => {
     // Handle edit click (switches to editing mode)
     const handleEditClick = (rowIndex, rowData) => {
         setEditingRowIndex(rowIndex);
-        setEditedData(rowData); // Initialize the edit data with the row's current data
+        setEditedData(rowData);
     };
 
     // Handle save click (save the data to Firebase)
