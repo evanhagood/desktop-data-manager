@@ -6,7 +6,7 @@ export const TableHeading = ({ label, active, sortDirection, onClick }) => {
 
     const getSortIcon = () => {
         if (active && sortDirection) {
-            return sortDirection === 'asc' ? <SortAscIcon /> : <SortDescIcon />;
+            return sortDirection  === 'asc' ? <SortAscIcon /> : <SortDescIcon />;
         }
     };
 
@@ -22,5 +22,5 @@ export const TableHeading = ({ label, active, sortDirection, onClick }) => {
                 <span className="flex-4 text-xl">{getSortIcon()}</span>
             </div>
         </th>
-    );
-};
+      );
+  };
