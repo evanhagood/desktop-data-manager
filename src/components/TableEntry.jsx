@@ -92,12 +92,12 @@ export const TableEntry = forwardRef((props, ref) => {
                         dbKey={key}
                         entryData={entryData}
                         setEntryData={setEntryData}
-                        className={getLabel(key) === 'Date & Time' ? 'dateTimeColumn' :
-                            getLabel(key) === 'Site' ? 'siteColumn' :
-                                getLabel(key) === 'Year' ? 'yearColumn' :
-                                    getLabel(key) === 'Taxa' ? 'taxaColumn' :
-                                        getLabel(key) === 'Genus' ? 'genusColumn' :
-                                            getLabel(key) === 'Species' ? 'speciesColumn' : ''
+                        className={getLabel(key) === 'Date & Time' ? 'dateTimeColumn' : 
+                            getLabel(key) === 'Site' ? 'siteColumn' : 
+                            getLabel(key) === 'Year' ? 'yearColumn' : 
+                            getLabel(key) === 'Taxa' ? 'taxaColumn' : 
+                            getLabel(key) === 'Genus' ? 'genusColumn' : 
+                            getLabel(key) === 'Species' ? 'speciesColumn' : ''
                         }
                     />
                 )
@@ -132,12 +132,11 @@ const EntryItem = ({ entrySnapshot, dbKey, entryUIState, setEntryData, entryData
     const size = entryData[dbKey] ? String(entryData[dbKey]).length : 1;
 
     return (
-
         //<td className="text-center border-b border-neutral-400 dark:border-neutral-600 p-1">
         <td className={`text-left border-b border-neutral-400 dark:border-neutral-600 p-1 ${className || ''}`}>
             <input
                 readOnly={disabled}
-                className="pl-2 w-full read-only:bg-transparent read-only:border-transparent read-only:focus:outline-none"
+                className="pl-2 w-full read-only:bg-transparent read-only:border-transparent read-only:focus:outline-none" 
                 value={entryData[dbKey] ?? 'N/A'}
                 onChange={(e) => onChangeHandler(e)}
                 onClick={(e) => onClickHandler(e)}

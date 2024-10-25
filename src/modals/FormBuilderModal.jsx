@@ -1,5 +1,6 @@
 import Modal from "../components/Modal";
 import { FormBuilder } from "../pages";
+import React from 'react';
 
 export default function FormBuilderModal({ showModal, onCancel, onOkay, triggerRerender }) {
     return (

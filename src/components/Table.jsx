@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { TableEntry } from './TableEntry';
 import { TableHeading } from './TableHeading';
 import { tableBody } from '../utils/variants';
@@ -13,6 +13,47 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
     const startXRef = useRef(null);
     const startWidthRef = useRef(null);
 
+    const calculateColumnWidths = () => {
+        if (!tableRef.current) return;
+
+        const measureDiv = document.createElement('div');
+        measureDiv.style.position = 'absolute';
+        measureDiv.style.visibility = 'hidden';
+        measureDiv.style.whiteSpace = 'nowrap';
+        document.body.appendChild(measureDiv);
+
+        const newWidths = {};
+        
+        
+        newWidths['actions'] = 60; 
+
+        labels.forEach((label, index) => {
+            if (columns[label]?.show) {
+                measureDiv.textContent = label;
+                // Reduced padding from 40 to 16
+                let maxWidth = measureDiv.offsetWidth + 12; 
+
+                entries.forEach(entry => {
+                    const key = getKey(label, name);
+                    const value = entry.data?.()[key] || 'N/A';
+                    measureDiv.textContent = String(value);
+                    
+                    const contentWidth = measureDiv.offsetWidth + 34; 
+                    maxWidth = Math.max(maxWidth, contentWidth);
+                });
+
+                newWidths[index] = Math.min(Math.max(maxWidth, 20), 400);
+            }
+        });
+
+        document.body.removeChild(measureDiv);
+        return newWidths;
+    };
+    // Initialize column widths on mount and when data changes
+    useEffect(() => {
+        const initialWidths = calculateColumnWidths();
+        setColumnWidths(initialWidths);
+    }, [entries, labels, columns]);
     const sortedEntries = (entries, column, direction) => {
         const sortedEntries = [...entries];
         sortedEntries.sort((a, b) => {
@@ -43,14 +84,12 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
         setResizing(columnIndex);
         startXRef.current = e.clientX;
         startWidthRef.current = columnWidths[columnIndex] || (columnIndex === 'actions' ? 50 : 80);
-
         e.preventDefault();
         e.stopPropagation();
     };
 
     const handleMouseMove = (e) => {
         if (resizing === null) return;
-
         const currentWidth = startWidthRef.current;
         const mouseMove = e.clientX - startXRef.current;
         const newWidth = Math.max(20, currentWidth + mouseMove);
@@ -64,12 +103,14 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
 
         e.preventDefault();
     };
+  
     const stopResizing = () => {
         setResizing(null);
         startXRef.current = null;
         startWidthRef.current = null;
     };
-    React.useEffect(() => {
+
+    useEffect(() => {
         if (resizing !== null) {
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', stopResizing);
@@ -182,6 +223,7 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
                             columnWidths={columnWidths}
                         />
                     ))}
+
                     </tbody>
                 </table>
             </div>

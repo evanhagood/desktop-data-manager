@@ -4,6 +4,7 @@ import { db } from '../utils/firebase';
 import { notify, Type } from '../components/Notifier';
 import { AnimatePresence, motion } from 'framer-motion';
 import Button from '../components/Button';
+import React from 'react';
 
 export default function FormBuilder({ triggerRerender }) {
     const [activeCollection, setActiveCollection] = useState(''); // current collection selected
