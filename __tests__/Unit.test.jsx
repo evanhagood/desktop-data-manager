@@ -209,4 +209,3 @@ test('renders MergeSessionsModal with Data Form tab active', async () => {
     expect(screen.getByText('Merge Session Tool')).toBeInTheDocument();
   });
 });
-
