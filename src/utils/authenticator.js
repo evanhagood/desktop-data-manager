@@ -34,6 +34,7 @@ export class Authenticator {
             loginTime: now.toLocaleTimeString(),
         });
         console.log(`Login recorded for: ${email}`);
+
     }
 
     // Prompt the user for a password to register them in the database
@@ -69,7 +70,6 @@ export class Authenticator {
                     return false;
                 }
             }
-
             //this records login history after authentication is done
             await this.addLoginHistory(email);
 
