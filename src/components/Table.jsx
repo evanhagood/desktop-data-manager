@@ -1,5 +1,5 @@
 // Table.js
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { TableEntry } from './TableEntry';
 import { TableHeading } from './TableHeading';
 import { tableBody } from '../utils/variants';
@@ -13,6 +13,48 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
     const tableRef = useRef(null);
     const startXRef = useRef(null);
     const startWidthRef = useRef(null);
+
+    const calculateColumnWidths = () => {
+        if (!tableRef.current) return;
+
+        const measureDiv = document.createElement('div');
+        measureDiv.style.position = 'absolute';
+        measureDiv.style.visibility = 'hidden';
+        measureDiv.style.whiteSpace = 'nowrap';
+        document.body.appendChild(measureDiv);
+
+        const newWidths = {};
+        
+        
+        newWidths['actions'] = 60; 
+
+        labels.forEach((label, index) => {
+            if (columns[label]?.show) {
+                measureDiv.textContent = label;
+                // Reduced padding from 40 to 16
+                let maxWidth = measureDiv.offsetWidth + 12; 
+
+                entries.forEach(entry => {
+                    const key = getKey(label, name);
+                    const value = entry.data?.()[key] || 'N/A';
+                    measureDiv.textContent = String(value);
+                    
+                    const contentWidth = measureDiv.offsetWidth + 34; 
+                    maxWidth = Math.max(maxWidth, contentWidth);
+                });
+
+                newWidths[index] = Math.min(Math.max(maxWidth, 20), 400);
+            }
+        });
+
+        document.body.removeChild(measureDiv);
+        return newWidths;
+    };
+    // Initialize column widths on mount and when data changes
+    useEffect(() => {
+        const initialWidths = calculateColumnWidths();
+        setColumnWidths(initialWidths);
+    }, [entries, labels, columns]);
 
     const sortedEntries = (entries, column, direction) => {
         const sortedEntries = [...entries];
@@ -54,23 +96,25 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
     
         const currentWidth = startWidthRef.current;
         const mouseMove = e.clientX - startXRef.current;
-        const newWidth = Math.max(20, currentWidth + mouseMove);
+        const newWidth = Math.max(20, currentWidth + mouseMove); 
         
         requestAnimationFrame(() => {
             setColumnWidths(prev => ({
                 ...prev,
-                [resizing]: newWidth
+                [resizing]: Math.min(newWidth, 400) // Keeping maximum width at 400px
             }));
         });
     
         e.preventDefault();
     };
+
     const stopResizing = () => {
         setResizing(null);
         startXRef.current = null;
         startWidthRef.current = null;
     };
-    React.useEffect(() => {
+
+    useEffect(() => {
         if (resizing !== null) {
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', stopResizing);
@@ -81,23 +125,14 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
         }
     }, [resizing]);
 
-    const defaultWidths = {
-        actions: 50,
-        ...labels.reduce((acc, _, index) => ({
-            ...acc,
-            [index]: 80
-        }), {})
-    };
-
-    // Add reset function
     const resetColumnWidths = () => {
-        setColumnWidths(defaultWidths);
+        const initialWidths = calculateColumnWidths();
+        setColumnWidths(initialWidths);
     };
-
 
     return (
         <div className="w-full overflow-x-auto relative border-b border-neutral-400">
-               <div className="flex justify-end mb-1"> {/* Add button container */}
+            <div className="flex justify-end mb-1">
                 <button
                     className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 rounded border border-gray-300 transition-colors"
                     onClick={resetColumnWidths}
@@ -108,26 +143,30 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
             <div className="min-w-full inline-block">
                 <table 
                     ref={tableRef}
-                    className="w-full table-auto border-separate border-spacing-0"
-                    style={{ tableLayout: 'fixed' }}
+                    className="w-full table-auto border-collapse"
+                    style={{ 
+                        tableLayout: 'fixed',
+                        borderSpacing: 0
+                    }}
                 >
                     <thead>
-                        <tr>
+                        <tr className="border-b border-neutral-200">
                             <th 
-                                className="relative p-2 font-semibold text-gray-600 border-b text-center"
+                                className="relative font-semibold text-gray-600 text-center"
                                 style={{ 
-                                    width: columnWidths['actions'] || 50, 
-                                    minWidth: 50,
-                                    position: 'relative' // Ensure positioning context
+                                    width: columnWidths['actions'] || 60,
+                                    minWidth: 20,
+                                    position: 'relative',
+                                    padding: '4px 2px', // Minimal padding
                                 }}
                             >
                                 Actions
                                 <div
                                     className="absolute top-0 h-full cursor-col-resize hover:bg-blue-400 z-10" 
                                     style={{ 
-                                        right: '-3px',
-                                        width: '6px',  // Wider handle
-                                        transform: 'translateX(50%)', // Center the handle between columns
+                                        right: '-1px',
+                                        width: '2px',
+                                        transform: 'translateX(50%)',
                                     }}
                                     onMouseDown={(e) => startResizing(e, 'actions')}
                                 />
@@ -136,11 +175,12 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
                                 columns[label]?.show && (
                                     <th 
                                         key={label}
-                                        className="relative"
+                                        className="relative border-l border-neutral-200"
                                         style={{ 
-                                            width: columnWidths[index] || 80,
-                                            minWidth: 30,
-                                            position: 'relative' // Ensure positioning context
+                                            width: columnWidths[index] || 60,
+                                            minWidth: 20,
+                                            position: 'relative',
+                                            padding: '4px 2px', // Minimal padding
                                         }}
                                     >
                                         <TableHeading
@@ -153,11 +193,11 @@ export const Table = ({ labels, columns, entries, name, setEntries }) => {
                                             }}
                                         />
                                         <div
-                                            className="absolute top-0 h-full cursor-col-resize hover:bg-red-400 z-10"
+                                            className="absolute top-0 h-full cursor-col-resize hover:bg-red-800/50 z-10"
                                             style={{ 
-                                                right: '-3px',
-                                                width: '16px',  // Wider handle
-                                                transform: 'translateX(50%)', // Center the handle between columns
+                                                right: '-1px',
+                                                width: '6px',
+                                                transform: 'translateX(50%)',
                                             }}
                                             onMouseDown={(e) => {
                                                 e.stopPropagation();
