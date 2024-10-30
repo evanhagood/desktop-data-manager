@@ -43,11 +43,6 @@ function App() {
                     <LoginPage auth={auth} onLogin={handleLogin} />
                 )}
             </div>
-            {userEmail && (
-                <div className="p-4">
-                    <button onClick={handleLogout}>Logout</button>
-                </div>
-            )}
         </div>
     );
 }
