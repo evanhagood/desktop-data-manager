@@ -25,3 +25,8 @@ Adding another arthropod to the same session, and downloading the CSV a second t
 ![img.png](img.png)
 
 It's out of order, sure, but nothing is out of the ordinary.
+
+UPDATE 10/30:
+Spoke with Quinten about how I could not reproduce the bug; we need to speak with sponsor to confirm what the issue is.
+
+Next meeting is 11/6. Will update this then.
