@@ -8,13 +8,16 @@ export default function Modal({
     text,
     onOkay,
     onCancel,
+    onBack,
     children,
     showModal,
     buttonOptions = {
         cancel: 'Cancel',
-        okay: 'Okay'
+        okay: 'Okay',
+        back: null,
     }
 }) {
+    console.log("buttonOptions:", buttonOptions);
     return (
         <motion.div
             className={`relative z-50`}
@@ -39,6 +42,16 @@ export default function Modal({
                                     <ModalHeader title={title} text={text} />
                                     <ModalContent>{children}</ModalContent>
                                     <ModalFooter>
+                                    {buttonOptions.back && (
+                                            <Button
+                                                onClick={() => {
+                                                    console.log("Back button clicked");
+                                                    onBack();
+                                                }}
+                                                text={buttonOptions.back}
+                                                enabled={true}
+                                            />
+                                        )}
                                         {buttonOptions.cancel && <Button
                                             onClick={() => onCancel()}
                                             text={buttonOptions.cancel}
@@ -98,5 +111,6 @@ function ModalContent({ children }) {
 }
 
 function ModalFooter({ children }) {
+    console.log("ModalFooter children:", children);
     return <div className="bg-neutral-100 dark:bg-neutral-900 p-4 flex justify-end space-x-5">{children}</div>;
 }
