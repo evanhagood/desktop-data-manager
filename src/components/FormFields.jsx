@@ -765,14 +765,14 @@ const LandscapeTable = ({
     ];
 
 
-    return (
+  return (
         <motion.div
             className="absolute h-[calc(100%-2.5rem)] w-[calc(100%-2.5rem)] shadow-2xl top-0 left-0 bg-white border-2 border-asu-maroon rounded-2xl m-5 p-1 flex flex-col items-center portrait:hidden z-50"
             initial={{ opacity: 0, y: '50%' }}
             animate={{ opacity: 1, y: '0', transition: { duration: .15 } }}
             exit={{ opacity: 0, y: '25%', transition: { duration: .05 } }}
         >
-            <h1 className="text-3xl">Recapture History</h1>
+            <h1 className="text-3xl  text-black">Recapture History</h1>
 
             <motion.div className="flex items-center space-x-2 justify-center w-full border-black border-0 justify-items-center max-w-md">
                 <motion.div className="flex w-16 flex-col items-center">
@@ -806,17 +806,17 @@ const LandscapeTable = ({
 
             <motion.div className="border-2 border-black w-full h-full mb-2 rounded-xl shadow-lg overflow-y-auto">
                 <table className="text-center text-sm w-full table-auto border-collapse">
-                    <thead>
-                        <tr>
+                    <thead  className="text-black">
+                        <tr className="text-black">
                             {lizardHistoryLabelArray.map(((label, index, array) => (
                                 <td key={label} className={index < array.length - 1 ?
-                                    'border-r-[1px] border-b-2 border-black'
+                                    'border-r-[1px] border-b-2 border-black text-black'
                                     :
-                                    'border-r-0 border-b-2 border-black'}>{label}</td>
+                                    'border-r-0 border-b-2 border-black text-black'}>{label}</td>
                             )))}
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="text-black">
                         {previousLizardEntries.map((entry, index, array) => {
                             return (
                                 <tr key={index}>
