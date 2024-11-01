@@ -34,7 +34,6 @@ export class Authenticator {
             loginTime: now.toLocaleTimeString(),
         });
         console.log(`Login recorded for: ${email}`);
-
     }
 
     // Prompt the user for a password to register them in the database
