@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, setDoc, doc, addDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import Button from '../components/Button';
 import React from 'react';
 
 export default function FormBuilder({ triggerRerender, modalStep, setModalStep }) {
     const [documents, setDocuments] = useState([]);
+    const [selectedDocument, setSelectedDocument] = useState(null);
+    const [dataOptions, setDataOptions] = useState([]);
+    const [selectedData, setSelectedData] = useState('');
+    const [editData, setEditData] = useState({});
+    const [editModalVisible, setEditModalVisible] = useState(false);
+    
+    // New Document Creation Modal state
+    const [showNewDocumentModal, setShowNewDocumentModal] = useState(false);
+    const [newAnswerSetName, setNewAnswerSetName] = useState('');
+    const [secondaryKeys, setSecondaryKeys] = useState([]);
+    const [newSecondaryKey, setNewSecondaryKey] = useState('');
 
     useEffect(() => {
         if (modalStep === 3) fetchDocuments();
@@ -20,50 +31,116 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         setDocuments(tempDocuments);
     };
 
+    const handleDocumentClick = (doc) => {
+        setSelectedDocument(doc);
+        const availableDataOptions = doc.answers ? doc.answers.map(answer => answer.primary) : [];
+        setDataOptions(availableDataOptions);
+        
+        if (availableDataOptions.length > 0) {
+            setSelectedData(availableDataOptions[0]);
+            handleDataSelection(availableDataOptions[0]);
+        } else {
+            setEditData({});
+        }
+        
+        setEditModalVisible(true);
+    };
+
+    const handleDataSelection = (data) => {
+        const selectedAnswer = selectedDocument.answers.find(answer => answer.primary === data);
+        setEditData(selectedAnswer || {});
+    };
+
+    const handleEditChange = (key, value) => {
+        setEditData((prevEditData) => ({
+            ...prevEditData,
+            [key]: value
+        }));
+    };
+
+    const submitChanges = async () => {
+        if (selectedDocument && selectedData) {
+            const docRef = doc(db, 'AnswerSet', selectedDocument.set_name);
+            const updatedAnswers = selectedDocument.answers.map((answer) =>
+                answer.primary === selectedData ? { ...editData, primary: selectedData } : answer
+            );
+            await setDoc(docRef, { ...selectedDocument, answers: updatedAnswers });
+            triggerRerender();
+        }
+    };
+
+    const renderEditDataFields = () => {
+        if (!editData || Object.keys(editData).length === 0) {
+            return <p>No data available to edit.</p>;
+        }
+        return Object.entries(editData).map(([key, value]) => (
+            <div key={key} className="flex flex-col">
+                <label className="text-md">{key}</label>
+                <input
+                    type="text"
+                    className="border p-2 rounded"
+                    value={value}
+                    onChange={(e) => handleEditChange(key, e.target.value)}
+                />
+            </div>
+        ));
+    };
+
+    const handleAddSecondaryKey = () => {
+        if (newSecondaryKey.trim() !== '') {
+            setSecondaryKeys([...secondaryKeys, newSecondaryKey]);
+            setNewSecondaryKey('');
+        }
+    };
+
+    const handleSubmitNewDocument = async () => {
+        const docRef = collection(db, 'AnswerSet');
+        await addDoc(docRef, { set_name: newAnswerSetName, secondary_keys: secondaryKeys });
+        setShowNewDocumentModal(false);
+        triggerRerender();
+    };
+
     const renderModalContent = () => {
         switch (modalStep) {
             case 1:
                 return (
-                    <div className="p-4 bg-white rounded-lg">
-                        <h2 className="text-xl font-bold mb-2">Collection</h2>
+                    <div className="p-6 bg-white rounded-lg flex flex-col items-center">
+                        <h2 className="text-xl font-bold mb-4">Collection</h2>
                         <Button onClick={() => setModalStep(2)} text="AnswerSet" className="bg-blue-500 text-white px-4 py-2 rounded" />
                     </div>
                 );
             case 2:
                 return (
-                    <div className="p-4 bg-white rounded-lg">
-                        <h2 className="text-xl font-bold mb-2">Document Options</h2>
-                        <div className="flex flex-col gap-2">
-                            <Button onClick={() => setModalStep(3)} text="Modify Existing Document" className="bg-blue-500 text-white px-6 py-3 rounded w-full" />
-                            <Button onClick={() => setModalStep(4)} text="Create New Document" className="bg-green-500 text-white px-6 py-3 rounded w-full" />
+                    <div className="p-6 bg-white rounded-lg flex flex-col items-center">
+                        <h2 className="text-xl font-bold mb-4">Document Options</h2>
+                        <div className="flex flex-col gap-4 w-full max-w-xs">
+                        <Button 
+                        onClick={() => setModalStep(3)} 
+                        text="Modify Existing Document" 
+                        className="bg-blue-500 text-white px-6 py-3 rounded w-full" 
+                        />
+                <Button 
+                    onClick={() => setShowNewDocumentModal(true)} 
+                    text="Create New Document" 
+                    className="bg-blue-500 text-white px-6 py-3 rounded w-full" 
+                />
                         </div>
                     </div>
                 );
             case 3:
                 return (
-                    <div className="p-4 bg-white rounded-lg">
-                        <h2 className="text-xl font-bold mb-2">Modify Document</h2>
+                    <div className="p-6 bg-white rounded-lg overflow-y-auto" style={{ maxHeight: '300px' }}>
+                        <h2 className="text-xl font-bold mb-4">Modify Document</h2>
                         <ul className="space-y-2">
-                            {documents.length > 0 ? (
-                                documents.map((doc, index) => (
-                                    <Button
-                                        key={index}
-                                        onClick={() => console.log(`Selected document: ${doc.set_name || `Document ${index + 1}`}`)}
-                                        text={doc.set_name || `Document ${index + 1}`}
-                                        className="bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300 w-full"
-                                    />
-                                ))
-                            ) : (
-                                <p>No documents available to modify.</p>
-                            )}
+                            {documents.map((doc, index) => (
+                                <Button
+                                    key={index}
+                                    onClick={() => handleDocumentClick(doc)}
+                                    text={doc.set_name || `Document ${index + 1}`}
+                                    className="bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300 w-full"
+                                />
+                            ))}
                         </ul>
-                    </div>
-                );
-            case 4:
-                return (
-                    <div className="p-4 bg-white rounded-lg">
-                        <h2 className="text-xl font-bold mb-2">Create New Document</h2>
-                        <p>Document creation form goes here...</p>
                     </div>
                 );
             default:
@@ -72,9 +149,77 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     };
 
     return (
-        <div className="flex justify-center items-start w-[600px] h-[400px] bg-white rounded-lg shadow-lg overflow-y-auto p-4">
-            {renderModalContent()}
+        <div className="flex justify-center items-center bg-gray-100 h-screen overflow-y-auto">
+            <div className="w-[600px] h-[400px] bg-white rounded-lg shadow-lg p-4">
+                {renderModalContent()}
+            </div>
+            {/* New Document Modal */}
+            {showNewDocumentModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                        <h2 className="text-xl font-bold mb-4">Create New Document</h2>
+                        <label className="block mb-2 font-medium">Answer Set Name:</label>
+                        <input
+                            type="text"
+                            value={newAnswerSetName}
+                            onChange={(e) => setNewAnswerSetName(e.target.value)}
+                            className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                            placeholder="Enter answer set name"
+                        />
+                        <label className="block mb-2 font-medium">Secondary Keys:</label>
+                        {secondaryKeys.map((key, index) => (
+                            <p key={index} className="ml-2 mb-2 text-gray-700">- {key}</p>
+                        ))}
+                        <input
+                            type="text"
+                            value={newSecondaryKey}
+                            onChange={(e) => setNewSecondaryKey(e.target.value)}
+                            className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                            placeholder="Enter secondary key"
+                        />
+                        <Button 
+                            onClick={handleAddSecondaryKey} 
+                            text="Add Secondary Key" 
+                            className="bg-blue-500 text-white px-4 py-2 rounded w-full mb-4" 
+                        />
+                        <Button 
+                            onClick={handleSubmitNewDocument} 
+                            text="Submit" 
+                            className="bg-green-500 text-white px-4 py-2 rounded w-full mb-2" 
+                        />
+                        <Button 
+                            onClick={() => setShowNewDocumentModal(false)} 
+                            text="Cancel" 
+                            className="bg-gray-400 text-white px-4 py-2 rounded w-full" 
+                        />
+                    </div>
+                </div>
+            )}
+            {editModalVisible && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                        <h2 className="text-xl font-bold mb-4">Data</h2>
+                        <select
+                            className="mb-4 p-2 border rounded w-full"
+                            value={selectedData}
+                            onChange={(e) => {
+                                setSelectedData(e.target.value);
+                                handleDataSelection(e.target.value);
+                            }}
+                        >
+                            {dataOptions.map((option, index) => (
+                                <option key={index} value={option}>{option}</option>
+                            ))}
+                        </select>
+                        <h3 className="text-lg font-bold mb-2">Edit Data</h3>
+                        {renderEditDataFields()}
+                        <div className="flex justify-end mt-4 space-x-2">
+                            <Button onClick={() => setEditModalVisible(false)} text="Cancel" className="bg-gray-400 text-white px-4 py-2 rounded" />
+                            <Button onClick={submitChanges} text="Save" className="bg-blue-500 text-white px-4 py-2 rounded" />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
-
