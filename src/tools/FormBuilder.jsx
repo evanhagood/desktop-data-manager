@@ -17,6 +17,9 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const [newAnswerSetName, setNewAnswerSetName] = useState('');
     const [secondaryKeys, setSecondaryKeys] = useState([]);
     const [newSecondaryKey, setNewSecondaryKey] = useState('');
+    const [arrayOptions, setArrayOptions] = useState([]);
+    const [selectedArray, setSelectedArray] = useState(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     useEffect(() => {
         if (modalStep === 3) fetchDocuments();
@@ -30,6 +33,95 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         });
         setDocuments(tempDocuments);
     };
+
+    const handleDeleteArrayClick = async () => {
+        try {
+            const querySnapshot = await getDocs(collection(db, 'AnswerSet'));
+            const arrays = [];
+
+            // Loop through each document to collect arrays ending with 'Array'
+            querySnapshot.forEach((docSnapshot) => {
+                const docData = docSnapshot.data();
+                console.log('Document data:', docData); // Debugging line
+
+                Object.keys(docData).forEach((key) => {
+                    if (key.endsWith('Array')) { // Corrected condition to 'Array'
+                        arrays.push({
+                            name: key,
+                            docId: docSnapshot.id,
+                        });
+                    }
+                });
+            });
+
+            console.log('Fetched arrays:', arrays); // Debugging line
+
+            setArrayOptions(arrays);
+            setSelectedArray(null);
+            setShowDeleteConfirm(true);
+        } catch (error) {
+            console.error('Error fetching arrays:', error);
+        }
+    };
+
+    const confirmDeleteArray = async () => {
+        if (selectedArray) {
+            const { docId, name } = selectedArray;
+
+            try {
+                const docRef = doc(db, 'AnswerSet', docId);
+                const docSnapshot = await getDocs(docRef);
+                const updatedData = { ...docSnapshot.data() };
+                delete updatedData[name]; // Remove the selected array
+
+                await setDoc(docRef, updatedData);
+                triggerRerender();
+                alert(`Array ${name} deleted successfully.`);
+            } catch (error) {
+                console.error('Error deleting array:', error);
+                alert('Failed to delete the array.');
+            } finally {
+                setShowDeleteConfirm(false);
+            }
+        }
+    };
+
+   const renderDeleteArrayModal = () => (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                <h2 className="text-xl font-bold mb-4">Select Array to Delete</h2>
+                <select
+                    className="mb-4 p-2 border rounded w-full"
+                    value={selectedArray ? selectedArray.name : ""}
+                    onChange={(e) => {
+                        const arrayName = e.target.value;
+                        const selected = arrayOptions.find(array => array.name === arrayName);
+                        setSelectedArray(selected || null);
+                    }}
+                >
+                    <option value="" disabled>Select an array</option>
+                    {arrayOptions.map((array, index) => (
+                        <option key={index} value={array.name}>
+                            {array.name} (in Document ID: {array.docId})
+                        </option>
+                    ))}
+                </select>
+                <div className="flex justify-end space-x-2">
+                    <Button
+                        onClick={() => setShowDeleteConfirm(false)}
+                        text="Cancel"
+                        className="bg-gray-400 text-white px-4 py-2 rounded"
+                    />
+                    <Button
+                        onClick={confirmDeleteArray}
+                        text="Delete"
+                        className="bg-red-500 text-white px-4 py-2 rounded"
+                        disabled={!selectedArray}
+                    />
+                </div>
+            </div>
+        </div>
+    );
 
     const handleDocumentClick = (doc) => {
         setSelectedDocument(doc);
@@ -100,14 +192,53 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         triggerRerender();
     };
 
+    const handleAddSite = () => {
+        console.log("Add Site button clicked");
+
+    };
+    
+    const handleAddSpecies = () => {
+        console.log("Add Species button clicked");
+       
+    };
+    
+    const handleAddTaxonomy = () => {
+        console.log("Add Taxonomy button clicked");
+        
+    };
+
     const renderModalContent = () => {
         switch (modalStep) {
             case 1:
                 return (
                     <div className="p-6 bg-white rounded-lg flex flex-col items-center">
-                        <h2 className="text-xl font-bold mb-4">Collection</h2>
-                        <Button onClick={() => setModalStep(2)} text="AnswerSet" className="bg-blue-500 text-white px-4 py-2 rounded" />
-                    </div>
+                    <h2 className="text-xl font-bold mb-4">Collection</h2>
+                    <Button
+                        onClick={() => setModalStep(2)}
+                        text="AnswerSet"
+                        className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                    />
+                    <Button
+                        onClick={handleDeleteArrayClick}
+                        text="Delete Array"
+                        className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                    />
+                    <Button
+                       onClick={handleAddSite}
+                       text="Add Site"
+                       className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                    />
+                    <Button
+                       onClick={handleAddSpecies}
+                       text="Add Species"
+                       className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                    />
+                    <Button
+                       onClick={handleAddTaxonomy}
+                       text="Add Taxonomy"
+                       className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                    />
+                </div>
                 );
             case 2:
                 return (
@@ -153,6 +284,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
             <div className="w-[600px] h-[400px] bg-white rounded-lg shadow-lg p-4">
                 {renderModalContent()}
             </div>
+            {showDeleteConfirm && renderDeleteArrayModal()}
             {/* New Document Modal */}
             {showNewDocumentModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
