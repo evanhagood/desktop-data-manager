@@ -4,17 +4,17 @@ import { modalVariant } from '../utils/variants';
 import React from 'react';
 
 export default function Modal({
-    title,
-    text,
-    onOkay,
-    onCancel,
-    children,
-    showModal,
-    buttonOptions = {
-        cancel: 'Cancel',
-        okay: 'Okay'
-    }
-}) {
+                                  title,
+                                  text,
+                                  onOkay,
+                                  onCancel,
+                                  children,
+                                  showModal,
+                                  buttonOptions = {
+                                      cancel: 'Cancel',
+                                      okay: 'Okay'
+                                  }
+                              }) {
     return (
         <motion.div
             className={`relative z-50`}

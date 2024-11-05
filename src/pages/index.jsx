@@ -4,8 +4,8 @@ import HomePage from "./HomePage";
 import LoginPage from "./LoginPage";
 import React from 'react';
 
-export { 
-    TablePage, 
+export {
+    TablePage,
     FormBuilder,
     HomePage,
     LoginPage

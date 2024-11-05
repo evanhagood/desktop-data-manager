@@ -1,4 +1,5 @@
 # Group 26 Field Day Capstone Project
+
 ### Group Members: Ayesha Arif, Chase Molstad, Evan Hagood, Quinten Knowles, Timothy Weaver
 
 # <img src="./public/logo.svg" alt="Field Day Logo" width="100">Field Day: Desktop Data Manager
@@ -66,7 +67,9 @@ DDM is an essential tool for viewing, managing, and exporting wildlife data coll
 6. You're all set! 🎉
 
 ## Run Unit Tests
+
 Install dependencies:
+
 1.  ```bash
     npm install
     ```
@@ -76,7 +79,7 @@ Install dependencies:
 3.  ```bash
     npm test
     ```
-    
+
 ## Test Deployments
 
 Test deployments are automatically created on PR into `main` and `dev` branches using the workflow: `firebase-hosting-pull-request.yml`. The URLs for the test deployment are provided in the PR checks.

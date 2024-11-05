@@ -5,9 +5,9 @@ import { notify, Type } from "./Notifier";
 import React from 'react';
 
 export const Pagination = ({
-    loadNextBatch,
-    loadPrevBatch
-}) => {
+                               loadNextBatch,
+                               loadPrevBatch
+                           }) => {
     const [batchSize, setBatchSize] = useAtom(currentBatchSize);
 
     return (

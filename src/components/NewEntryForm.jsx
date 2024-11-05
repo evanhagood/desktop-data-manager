@@ -33,7 +33,7 @@ export default function NewEntryForm({ setData }) {
         })
     }, [project, year])
 
-  
+
 
     const activeSessions = sessions.map((session) => {
         return session.data().dateTime;
@@ -123,13 +123,13 @@ const CritterForm = ({ critter, project, session }) => {
     const [speciesArrayPromise, setSpeciesArrayPromise] = useState();
     const environment = useAtomValue(appMode);
 
-   useEffect(() => {
+    useEffect(() => {
         // console.log(entry)
-   }, [entry])
+    }, [entry])
 
-   // TODO: dynamically fetch arthopod labels and use those instead of the hardcoded ones!
+    // TODO: dynamically fetch arthopod labels and use those instead of the hardcoded ones!
 
-   const dataObjTemplate = {
+    const dataObjTemplate = {
         aran: '',
         array: '',
         auch: '',
@@ -194,7 +194,7 @@ const CritterForm = ({ critter, project, session }) => {
         setEntry(tempEntry);
         hydrateSpeciesArrays(project, critter)
     }, [critter])
-    
+
     const setField = (key, value) => {
         setEntry(entry => ({
             ...entry,
@@ -235,7 +235,7 @@ const CritterForm = ({ critter, project, session }) => {
                             fieldName={key}
                             layout='vertical'
                             value={entry[key]}
-                            setValue={(value) => { 
+                            setValue={(value) => {
                                 setField(key, value)
                             }}
                             site={session.site}
@@ -250,7 +250,7 @@ const CritterForm = ({ critter, project, session }) => {
                 })
                 }
             </div>
-            <button 
+            <button
                 className='button flex-col items-center w-1/2 text-xl p-2'
                 onClick={() => addEntry()}
             >Add entry?</button>

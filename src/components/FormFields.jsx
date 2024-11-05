@@ -181,7 +181,7 @@ const SiteField = ({ site, setSite, disabled, project }) => {
                 })}
             </select>} />
     )
-} 
+}
 
 const ReadOnlyField = ({ label, value }) => {
     return (
@@ -192,7 +192,7 @@ const ReadOnlyField = ({ label, value }) => {
 }
 
 const ArrayField = ({ array, setArray, disabled, site, project }) => {
-    if (disabled) return <ReadOnlyField label='Array' value={array} /> 
+    if (disabled) return <ReadOnlyField label='Array' value={array} />
     const [arrayOptions, setArrayOptions] = useState([])
     const populateArrayOptions = async () => {
         setArrayOptions(await getArraysForSite(project, site));
@@ -221,9 +221,9 @@ const ArrayField = ({ array, setArray, disabled, site, project }) => {
 }
 
 const NoCapturesField = ({ noCaptures, setNoCaptures, layout, disabled }) => (
-    <Checkbox 
+    <Checkbox
         label={'No Captures?'}
-        setValue={setNoCaptures}  
+        setValue={setNoCaptures}
         value={noCaptures}
     />
 );
@@ -572,9 +572,9 @@ export const checkToeCodeValidity = async (toeCode, environment, project, site, 
         notify(Type.error, 'Toe Clip Code must have an even number of characters');
         return false;
     } else {
-        const collectionName = environment === 'live' ? 
-            `${project.replace(/\s/g, '')}Data` 
-            : 
+        const collectionName = environment === 'live' ?
+            `${project.replace(/\s/g, '')}Data`
+            :
             `Test${project.replace(/\s/g, '')}Data`;
         const lizardSnapshot = await getDocs(query(
             collection(db, collectionName),
@@ -609,8 +609,8 @@ export const checkToeCodeValidity = async (toeCode, environment, project, site, 
 
 
 const ToeClipCodeField = ({
-    toeCode, setToeCode, project, site, array, speciesCode, recapture
-}) => {
+                              toeCode, setToeCode, project, site, array, speciesCode, recapture
+                          }) => {
     const environment = useAtomValue(appMode);
     const [buttonText, setButtonText] = useState('Generate');
     const [recaptureHistoryIsOpen, setRecaptureHistoryIsOpen] = useState(false);
@@ -735,8 +735,8 @@ const ToeClipCodeField = ({
 }
 
 const LandscapeTable = ({
-    site, speciesCode, toeCode, previousLizardEntries, setRecaptureHistoryIsOpen
-}) => {
+                            site, speciesCode, toeCode, previousLizardEntries, setRecaptureHistoryIsOpen
+                        }) => {
 
     const lizardHistoryLabelArray = [
         'Date',
@@ -859,8 +859,8 @@ const LandscapeTable = ({
 }
 
 const ArthropodDataField = ({
-    label, value, setValue
-}) => {
+                                label, value, setValue
+                            }) => {
     return (
         <InputLabel
             layout="vertical"
@@ -976,7 +976,7 @@ export function FormField({ fieldName, value, setValue, site, project, taxa, lay
             return <PredatorField pred={value} setPred={setValue} />;
         case 'hdBody':
             return <HdBodyField value={value} setValue={setValue} />;
-        case 'year': 
+        case 'year':
             return <EntryYearField year={value} />
         default:
             return <div>{`Field not found: ${fieldName}`}</div>;
