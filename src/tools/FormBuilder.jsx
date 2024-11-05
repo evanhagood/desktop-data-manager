@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, setDoc, doc, addDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
+import { getDoc, updateDoc, deleteField  } from 'firebase/firestore';
+import { deleteDoc } from 'firebase/firestore';
 import Button from '../components/Button';
 import React from 'react';
 
@@ -25,68 +27,83 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         if (modalStep === 3) fetchDocuments();
     }, [modalStep]);
 
-    const fetchDocuments = async () => {
-        const querySnapshot = await getDocs(collection(db, 'AnswerSet'));
-        const tempDocuments = [];
-        querySnapshot.forEach((doc) => {
-            tempDocuments.push(doc.data());
-        });
-        setDocuments(tempDocuments);
-    };
+  
 
-    const handleDeleteArrayClick = async () => {
+    const fetchDocuments = async () => {
         try {
             const querySnapshot = await getDocs(collection(db, 'AnswerSet'));
-            const arrays = [];
-
-            // Loop through each document to collect arrays ending with 'Array'
+            const tempDocuments = [];
+            const tempArrayOptions = [];
+    
             querySnapshot.forEach((docSnapshot) => {
                 const docData = docSnapshot.data();
-                console.log('Document data:', docData); // Debugging line
-
-                Object.keys(docData).forEach((key) => {
-                    if (key.endsWith('Array')) { // Corrected condition to 'Array'
-                        arrays.push({
-                            name: key,
-                            docId: docSnapshot.id,
-                        });
-                    }
-                });
+                tempDocuments.push(docData);
+    
+                console.log(`Document ID: ${docSnapshot.id}`);
+                console.log('Document data:', docData);
+    
+                // Check if 'set_name' ends with "Array" and add to array options
+                if (docData.set_name && docData.set_name.endsWith("Array")) {
+                    tempArrayOptions.push({
+                        name: docData.set_name,
+                        docId: docSnapshot.id,
+                    });
+                }
             });
-
-            console.log('Fetched arrays:', arrays); // Debugging line
-
-            setArrayOptions(arrays);
-            setSelectedArray(null);
-            setShowDeleteConfirm(true);
+    
+            setDocuments(tempDocuments); // Store fetched documents
+            setArrayOptions(tempArrayOptions); // Store arrays for dropdown
+            console.log('Fetched Documents:', tempDocuments);
+            console.log('Array Options for Dropdown:', tempArrayOptions);
+    
         } catch (error) {
-            console.error('Error fetching arrays:', error);
+            console.error('Error fetching documents:', error);
         }
     };
-
+    
+    
+    
+    const handleDeleteArrayClick = async () => {
+        if (arrayOptions.length === 0) {
+            await fetchDocuments(); // Ensure arrays are loaded
+        }
+        setShowDeleteConfirm(true); // Open delete confirmation modal
+    };
+    
+    
     const confirmDeleteArray = async () => {
         if (selectedArray) {
             const { docId, name } = selectedArray;
-
+    
             try {
+                // Reference to the document you want to delete
                 const docRef = doc(db, 'AnswerSet', docId);
-                const docSnapshot = await getDocs(docRef);
-                const updatedData = { ...docSnapshot.data() };
-                delete updatedData[name]; // Remove the selected array
-
-                await setDoc(docRef, updatedData);
+    
+                // Delete the entire document
+                await deleteDoc(docRef);
+    
+                // Update arrayOptions by removing the deleted document manually
+                setArrayOptions(prevArrayOptions => 
+                    prevArrayOptions.filter(array => array.docId !== docId)
+                );
+    
+                // Clear the selected array since it no longer exists
+                setSelectedArray(null);
+    
                 triggerRerender();
-                alert(`Array ${name} deleted successfully.`);
+                alert(`Document ${name} deleted successfully.`);
             } catch (error) {
-                console.error('Error deleting array:', error);
-                alert('Failed to delete the array.');
+                console.error('Error deleting document:', error);
+                alert('Failed to delete the document.');
             } finally {
                 setShowDeleteConfirm(false);
             }
         }
     };
+    
 
-   const renderDeleteArrayModal = () => (
+
+    const renderDeleteArrayModal = () => (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
             <div className="bg-white p-6 rounded-lg shadow-lg w-80">
                 <h2 className="text-xl font-bold mb-4">Select Array to Delete</h2>
@@ -102,7 +119,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                     <option value="" disabled>Select an array</option>
                     {arrayOptions.map((array, index) => (
                         <option key={index} value={array.name}>
-                            {array.name} (in Document ID: {array.docId})
+                            {array.name} 
                         </option>
                     ))}
                 </select>
