@@ -24,6 +24,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [primaryFields, setPrimaryFields] = useState([]); 
     const [selectedField, setSelectedField] = useState(null);
+    const [deleteMode, setDeleteMode] = useState('');
 
     useEffect(() => {
         if (modalStep === 3) fetchDocuments();
@@ -34,10 +35,12 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const fetchDocuments = async () => {
         try {
             const querySnapshot = await getDocs(collection(db, 'AnswerSet'));
+            const tempDocuments = [];
             const tempArrayOptions = [];
 
             querySnapshot.forEach((docSnapshot) => {
                 const docData = docSnapshot.data();
+                tempDocuments.push({ ...docData, docId: docSnapshot.id }); // Store full documents for modifying
                 if (docData.set_name && docData.set_name.endsWith("Array")) {
                     tempArrayOptions.push({
                         name: docData.set_name,
@@ -46,7 +49,9 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                 }
             });
 
-            setArrayOptions(tempArrayOptions);
+            setDocuments(tempDocuments); // Store fetched documents
+            setArrayOptions(tempArrayOptions); // Store array options for dropdown
+            console.log('Fetched Documents:', tempDocuments);
             console.log('Array Options for Dropdown:', tempArrayOptions);
         } catch (error) {
             console.error('Error fetching documents:', error);
@@ -57,9 +62,10 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         const arrayName = e.target.value;
         const selected = arrayOptions.find(array => array.name === arrayName);
         setSelectedArray(selected);
-        setPrimaryFields([]); // Reset primary fields
+        setPrimaryFields([]);
+        setSelectedField(null);
 
-        if (selected && selected.docId) {
+        if (selected && selected.docId && deleteMode === 'field') {
             try {
                 const docRef = doc(db, 'AnswerSet', selected.docId);
                 const docSnapshot = await getDoc(docRef);
@@ -75,34 +81,29 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
             }
         }
     };
-    
+
     const handleDeleteArrayClick = async () => {
         if (arrayOptions.length === 0) {
             await fetchDocuments(); // Ensure arrays are loaded
         }
         setShowDeleteConfirm(true); // Open delete confirmation modal
+        setDeleteMode(''); // Reset the delete mode
     };
     
     
     const confirmDeleteArray = async () => {
         if (selectedArray) {
             const { docId, name } = selectedArray;
-    
+
             try {
-                // Reference to the document you want to delete
                 const docRef = doc(db, 'AnswerSet', docId);
-    
-                // Delete the entire document
                 await deleteDoc(docRef);
-    
-                // Update arrayOptions by removing the deleted document manually
+
                 setArrayOptions(prevArrayOptions => 
                     prevArrayOptions.filter(array => array.docId !== docId)
                 );
-    
-                // Clear the selected array since it no longer exists
+
                 setSelectedArray(null);
-    
                 triggerRerender();
                 alert(`Document ${name} deleted successfully.`);
             } catch (error) {
@@ -119,22 +120,39 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const renderDeleteArrayModal = () => (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
             <div className="bg-white p-6 rounded-lg shadow-lg w-80">
-                <h2 className="text-xl font-bold mb-4">Select Array and Field to Delete</h2>
+                <h2 className="text-xl font-bold mb-4">Delete Options</h2>
                 
-                <select
-                    className="mb-4 p-2 border rounded w-full"
-                    value={selectedArray ? selectedArray.name : ""}
-                    onChange={handleArraySelection}
-                >
-                    <option value="" disabled>Select an array</option>
-                    {arrayOptions.map((array, index) => (
-                        <option key={index} value={array.name}>
-                            {array.name}
-                        </option>
-                    ))}
-                </select>
+                <div className="flex flex-col mb-4">
+                    <Button 
+                        onClick={() => setDeleteMode('array')}
+                        text="Delete Entire Array"
+                        className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                    />
+                    <Button 
+                        onClick={() => setDeleteMode('field')}
+                        text="Delete Array Field"
+                        className="bg-white-500 text-white px-4 py-2 rounded"
+                    />
+                </div>
 
-                {primaryFields.length > 0 && (
+                {deleteMode && (
+                    <>
+                        <select
+                            className="mb-4 p-2 border rounded w-full"
+                            value={selectedArray ? selectedArray.name : ""}
+                            onChange={handleArraySelection}
+                        >
+                            <option value="" disabled>Select an array</option>
+                            {arrayOptions.map((array, index) => (
+                                <option key={index} value={array.name}>
+                                    {array.name}
+                                </option>
+                            ))}
+                        </select>
+                    </>
+                )}
+
+                {deleteMode === 'field' && primaryFields.length > 0 && (
                     <select
                         className="mb-4 p-2 border rounded w-full"
                         value={selectedField || ""}
@@ -149,20 +167,33 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
 
                 <div className="flex justify-end space-x-2">
                     <Button
-                        onClick={() => setShowDeleteConfirm(false)}
+                        onClick={() => {
+                            setShowDeleteConfirm(false);
+                            setDeleteMode('');
+                        }}
                         text="Cancel"
                         className="bg-gray-400 text-white px-4 py-2 rounded"
                     />
-                    <Button
-                        onClick={confirmDeletePrimaryField}
-                        text="Delete"
-                        className="bg-red-500 text-white px-4 py-2 rounded"
-                        disabled={!selectedField}
-                    />
+                    {deleteMode === 'array' ? (
+                        <Button
+                            onClick={confirmDeleteArray}
+                            text="Delete Array"
+                            className="bg-red-500 text-white px-4 py-2 rounded"
+                            disabled={!selectedArray}
+                        />
+                    ) : (
+                        <Button
+                            onClick={confirmDeletePrimaryField}
+                            text="Delete Field"
+                            className="bg-red-500 text-white px-4 py-2 rounded"
+                            disabled={!selectedField}
+                        />
+                    )}
                 </div>
             </div>
         </div>
     );
+
 
 
 
@@ -180,7 +211,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                     triggerRerender();
                     alert(`Field ${selectedField} deleted successfully.`);
                     setPrimaryFields(updatedAnswers.map(field => field.primary).filter(Boolean));
-                    setSelectedField(null); // Reset selected field
+                    setSelectedField(null);
                 }
             } catch (error) {
                 console.error('Error deleting field:', error);
@@ -191,7 +222,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         }
     };
 
-    const handleDocumentClick = (doc) => {
+   const handleDocumentClick = (doc) => {
         setSelectedDocument(doc);
         const availableDataOptions = doc.answers ? doc.answers.map(answer => answer.primary) : [];
         setDataOptions(availableDataOptions);
@@ -205,6 +236,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         
         setEditModalVisible(true);
     };
+
 
     const handleDataSelection = (data) => {
         const selectedAnswer = selectedDocument.answers.find(answer => answer.primary === data);
@@ -270,59 +302,51 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
        
     };
     
-    const handleAddTaxonomy = () => {
-        console.log("Add Taxonomy button clicked");
-        
-    };
 
     const renderModalContent = () => {
         switch (modalStep) {
             case 1:
                 return (
                     <div className="p-6 bg-white rounded-lg flex flex-col items-center">
-                    <h2 className="text-xl font-bold mb-4">Collection</h2>
-                    <Button
-                        onClick={() => setModalStep(2)}
-                        text="AnswerSet"
-                        className="bg-white-500 text-white px-4 py-2 rounded mb-2"
-                    />
-                    <Button
-                        onClick={handleDeleteArrayClick}
-                        text="Delete Array"
-                        className="bg-white-500 text-white px-4 py-2 rounded mb-2"
-                    />
-                    <Button
-                       onClick={handleAddSite}
-                       text="Add Site"
-                       className="bg-white-500 text-white px-4 py-2 rounded mb-2"
-                    />
-                    <Button
-                       onClick={handleAddSpecies}
-                       text="Add Species"
-                       className="bg-white-500 text-white px-4 py-2 rounded mb-2"
-                    />
-                    <Button
-                       onClick={handleAddTaxonomy}
-                       text="Add Taxonomy"
-                       className="bg-white-500 text-white px-4 py-2 rounded mb-2"
-                    />
-                </div>
+                        <h2 className="text-xl font-bold mb-4">Collection</h2>
+                        <Button
+                            onClick={() => setModalStep(2)}
+                            text="AnswerSet"
+                            className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                        />
+                        <Button
+                            onClick={handleDeleteArrayClick}
+                            text="Delete Array"
+                            className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                        />
+                        <Button
+                           onClick={handleAddSite}
+                           text="Add Site"
+                           className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                        />
+                        <Button
+                           onClick={handleAddSpecies}
+                           text="Add Species"
+                           className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                        />
+                       
+                    </div>
                 );
             case 2:
                 return (
                     <div className="p-6 bg-white rounded-lg flex flex-col items-center">
                         <h2 className="text-xl font-bold mb-4">Document Options</h2>
                         <div className="flex flex-col gap-4 w-full max-w-xs">
-                        <Button 
-                        onClick={() => setModalStep(3)} 
-                        text="Modify Existing Document" 
-                        className="bg-blue-500 text-white px-6 py-3 rounded w-full" 
-                        />
-                <Button 
-                    onClick={() => setShowNewDocumentModal(true)} 
-                    text="Create New Document" 
-                    className="bg-blue-500 text-white px-6 py-3 rounded w-full" 
-                />
+                            <Button 
+                                onClick={() => setModalStep(3)} 
+                                text="Modify Existing Document" 
+                                className="bg-white-500 text-white px-6 py-3 rounded w-full" 
+                            />
+                            <Button 
+                                onClick={() => setShowNewDocumentModal(true)} 
+                                text="Create New Document" 
+                                className="bg-white-500 text-white px-6 py-3 rounded w-full" 
+                            />
                         </div>
                     </div>
                 );
@@ -350,11 +374,6 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     return (
         <div className="flex justify-center items-center bg-gray-100 h-screen overflow-y-auto">
             <div className="w-[600px] h-[400px] bg-white rounded-lg shadow-lg p-4">
-            <Button
-                    onClick={() => setShowDeleteConfirm(true)}
-                    text="Delete Array"
-                    className="bg-white-500 text-white px-4 py-2 rounded mb-2"
-                />
                 {renderModalContent()}
             </div>
             {showDeleteConfirm && renderDeleteArrayModal()}
