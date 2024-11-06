@@ -155,14 +155,16 @@ const HandlerField = ({ handler, setHandler, layout, disabled }) => {
     );
 }
 const SiteField = ({ site, setSite, disabled, project }) => {
-    if (disabled) return <ReadOnlyField label='Site' value={site} />
-    const [siteOptions, setSiteOptions] = useState([])
+    const [siteOptions, setSiteOptions] = useState([]);
+
     const populateSiteOptions = async () => {
         setSiteOptions(await getSitesForProject(project));
-    }
+    };
+
     useEffect(() => {
         populateSiteOptions();
-    }, [project])
+    }, [project]); // Trigger re-fetch when project or triggerRerender changes
+
     return (
         <InputLabel
             label={'Site'}
@@ -171,17 +173,17 @@ const SiteField = ({ site, setSite, disabled, project }) => {
                 value={site || 'Select an option'}
                 onChange={(e) => {
                     setSite(e.target.value);
-                } }
+                }}
             >
                 <option value="Select an option" disabled hidden>Select an option</option>
-                {siteOptions.map((option) => {
-                    return (
-                        <option key={option} value={option}>{option}</option>
-                    );
-                })}
-            </select>} />
-    )
-} 
+                {siteOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                ))}
+            </select>}
+        />
+    );
+};
+
 
 const ReadOnlyField = ({ label, value }) => {
     return (

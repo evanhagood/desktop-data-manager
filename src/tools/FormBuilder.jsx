@@ -25,6 +25,10 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const [primaryFields, setPrimaryFields] = useState([]); 
     const [selectedField, setSelectedField] = useState(null);
     const [deleteMode, setDeleteMode] = useState('');
+    const [showAddSiteModal, setShowAddSiteModal] = useState(false);
+    const [newSiteName, setNewSiteName] = useState('');
+    const [refreshSites, setRefreshSites] = useState(false);
+
 
     useEffect(() => {
         if (modalStep === 3) fetchDocuments();
@@ -293,15 +297,27 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     };
 
     const handleAddSite = () => {
-        console.log("Add Site button clicked");
-
+        setShowAddSiteModal(true); // Open the modal to add a new site
     };
+    
     
     const handleAddSpecies = () => {
         console.log("Add Species button clicked");
        
     };
     
+
+    const addSiteToDatabase = async (siteName) => {
+        try {
+            const docRef = collection(db, 'Sites'); // Ensure 'Sites' is the correct collection name
+            await addDoc(docRef, { name: siteName });
+            setRefreshSites(prev => !prev); // Trigger dropdown refresh
+            console.log(`Site ${siteName} added successfully.`);
+        } catch (error) {
+            console.error('Error adding site:', error);
+            alert('Failed to add the site.');
+        }
+    };
 
     const renderModalContent = () => {
         switch (modalStep) {
@@ -444,6 +460,42 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                     </div>
                 </div>
             )}
+
+               {showAddSiteModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                        <h2 className="text-xl font-bold mb-4">Enter New Site</h2>
+                        <input
+                            type="text"
+                            value={newSiteName}
+                            onChange={(e) => setNewSiteName(e.target.value)}
+                            className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                            placeholder="Enter site name"
+                        />
+                        <div className="flex justify-end space-x-2">
+                            <Button
+                                onClick={() => setShowAddSiteModal(false)}
+                                text="Cancel"
+                                className="bg-gray-400 text-white px-4 py-2 rounded"
+                            />
+                            <Button
+                                onClick={async () => {
+                                    if (newSiteName.trim()) {
+                                        await addSiteToDatabase(newSiteName);
+                                        setNewSiteName('');
+                                        setShowAddSiteModal(false);
+                                    } else {
+                                        alert("Please enter a site name.");
+                                    }
+                                }}
+                                text="Add Site"
+                                className="bg-blue-500 text-white px-4 py-2 rounded"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }
