@@ -22,6 +22,8 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const [arrayOptions, setArrayOptions] = useState([]);
     const [selectedArray, setSelectedArray] = useState(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [primaryFields, setPrimaryFields] = useState([]); 
+    const [selectedField, setSelectedField] = useState(null);
 
     useEffect(() => {
         if (modalStep === 3) fetchDocuments();
@@ -32,17 +34,10 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const fetchDocuments = async () => {
         try {
             const querySnapshot = await getDocs(collection(db, 'AnswerSet'));
-            const tempDocuments = [];
             const tempArrayOptions = [];
-    
+
             querySnapshot.forEach((docSnapshot) => {
                 const docData = docSnapshot.data();
-                tempDocuments.push(docData);
-    
-                console.log(`Document ID: ${docSnapshot.id}`);
-                console.log('Document data:', docData);
-    
-                // Check if 'set_name' ends with "Array" and add to array options
                 if (docData.set_name && docData.set_name.endsWith("Array")) {
                     tempArrayOptions.push({
                         name: docData.set_name,
@@ -50,18 +45,36 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                     });
                 }
             });
-    
-            setDocuments(tempDocuments); // Store fetched documents
-            setArrayOptions(tempArrayOptions); // Store arrays for dropdown
-            console.log('Fetched Documents:', tempDocuments);
+
+            setArrayOptions(tempArrayOptions);
             console.log('Array Options for Dropdown:', tempArrayOptions);
-    
         } catch (error) {
             console.error('Error fetching documents:', error);
         }
     };
-    
-    
+
+    const handleArraySelection = async (e) => {
+        const arrayName = e.target.value;
+        const selected = arrayOptions.find(array => array.name === arrayName);
+        setSelectedArray(selected);
+        setPrimaryFields([]); // Reset primary fields
+
+        if (selected && selected.docId) {
+            try {
+                const docRef = doc(db, 'AnswerSet', selected.docId);
+                const docSnapshot = await getDoc(docRef);
+
+                if (docSnapshot.exists()) {
+                    const answers = docSnapshot.data().answers || [];
+                    const primaryFields = answers.map(field => field.primary).filter(Boolean);
+                    setPrimaryFields(primaryFields);
+                    console.log("Primary fields:", primaryFields);
+                }
+            } catch (error) {
+                console.error('Error fetching primary fields:', error);
+            }
+        }
+    };
     
     const handleDeleteArrayClick = async () => {
         if (arrayOptions.length === 0) {
@@ -106,23 +119,34 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const renderDeleteArrayModal = () => (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
             <div className="bg-white p-6 rounded-lg shadow-lg w-80">
-                <h2 className="text-xl font-bold mb-4">Select Array to Delete</h2>
+                <h2 className="text-xl font-bold mb-4">Select Array and Field to Delete</h2>
+                
                 <select
                     className="mb-4 p-2 border rounded w-full"
                     value={selectedArray ? selectedArray.name : ""}
-                    onChange={(e) => {
-                        const arrayName = e.target.value;
-                        const selected = arrayOptions.find(array => array.name === arrayName);
-                        setSelectedArray(selected || null);
-                    }}
+                    onChange={handleArraySelection}
                 >
                     <option value="" disabled>Select an array</option>
                     {arrayOptions.map((array, index) => (
                         <option key={index} value={array.name}>
-                            {array.name} 
+                            {array.name}
                         </option>
                     ))}
                 </select>
+
+                {primaryFields.length > 0 && (
+                    <select
+                        className="mb-4 p-2 border rounded w-full"
+                        value={selectedField || ""}
+                        onChange={(e) => setSelectedField(e.target.value)}
+                    >
+                        <option value="" disabled>Select a primary field</option>
+                        {primaryFields.map((field, index) => (
+                            <option key={index} value={field}>{field}</option>
+                        ))}
+                    </select>
+                )}
+
                 <div className="flex justify-end space-x-2">
                     <Button
                         onClick={() => setShowDeleteConfirm(false)}
@@ -130,15 +154,42 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                         className="bg-gray-400 text-white px-4 py-2 rounded"
                     />
                     <Button
-                        onClick={confirmDeleteArray}
+                        onClick={confirmDeletePrimaryField}
                         text="Delete"
                         className="bg-red-500 text-white px-4 py-2 rounded"
-                        disabled={!selectedArray}
+                        disabled={!selectedField}
                     />
                 </div>
             </div>
         </div>
     );
+
+
+
+    const confirmDeletePrimaryField = async () => {
+        if (selectedArray && selectedArray.docId && selectedField) {
+            try {
+                const docRef = doc(db, 'AnswerSet', selectedArray.docId);
+                const docSnapshot = await getDoc(docRef);
+
+                if (docSnapshot.exists()) {
+                    const data = docSnapshot.data();
+                    const updatedAnswers = data.answers.filter(field => field.primary !== selectedField);
+
+                    await setDoc(docRef, { ...data, answers: updatedAnswers });
+                    triggerRerender();
+                    alert(`Field ${selectedField} deleted successfully.`);
+                    setPrimaryFields(updatedAnswers.map(field => field.primary).filter(Boolean));
+                    setSelectedField(null); // Reset selected field
+                }
+            } catch (error) {
+                console.error('Error deleting field:', error);
+                alert('Failed to delete the field.');
+            } finally {
+                setShowDeleteConfirm(false);
+            }
+        }
+    };
 
     const handleDocumentClick = (doc) => {
         setSelectedDocument(doc);
@@ -299,6 +350,11 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     return (
         <div className="flex justify-center items-center bg-gray-100 h-screen overflow-y-auto">
             <div className="w-[600px] h-[400px] bg-white rounded-lg shadow-lg p-4">
+            <Button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    text="Delete Array"
+                    className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                />
                 {renderModalContent()}
             </div>
             {showDeleteConfirm && renderDeleteArrayModal()}
