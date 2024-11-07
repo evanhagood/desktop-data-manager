@@ -12,44 +12,29 @@ Welcome to the Field Day App User Guide. This guide will help you understand how
     - [Logging In](#logging-in)
 3. [Application Features](#application-features)
     - [Dashboard Overview](#dashboard-overview)
-    - [Scheduling Activities](#scheduling-activities)
-    - [Managing Participants](#managing-participants)
-    - [Monitoring Field Day Events](#monitoring-field-day-events)
-    - [Notifications & Alerts](#notifications--alerts)
-4. [Detailed Instructions](#detailed-instructions)
-    - [How to Schedule an Event](#how-to-schedule-an-event)
-    - [How to Add a New Participant](#how-to-add-a-new-participant)
-    - [How to Track Participant Progress](#how-to-track-participant-progress)
-5. [Account Settings](#account-settings)
-    - [Editing Profile Information](#editing-profile-information)
-    - [Changing Password](#changing-password)
-    - [Privacy Settings](#privacy-settings)
-6. [Data and Analytics](#data-and-analytics)
-    - [Viewing Event Data](#viewing-event-data)
-    - [Exporting Reports](#exporting-reports)
+    - [Managing Entries](#managing-entries)
+    - [Editing The Table View](#editing-the-table-view)
+    - [Searching For Entries](#searching-for-entries)
+6. [Detailed instructions for Data Handling](#detailed-instructions-for-data-handling)
+    - [Exporting Data](#exporting-data)
 7. [Troubleshooting](#troubleshooting)
     - [Common Issues](#common-issues)
     - [FAQs](#faqs)
-8. [Support & Feedback](#support--feedback)
-    - [Contact Support](#contact-support)
+8. [Feedback](#support--feedback)
     - [Providing Feedback](#providing-feedback)
-9. [Legal Information](#legal-information)
-    - [Terms of Service](#terms-of-service)
-    - [Privacy Policy](#privacy-policy)
-10. [Appendix](#appendix)
-- [Glossary of Terms](#glossary-of-terms)
-- [Additional Resources](#additional-resources)
 
 ---
 
 # Introduction
 Welcome to Field Day! Field Day is an application sponsored by Dr. Heather Bateman, a biologist and researcher at Arizona State University.
 
+Students at ASU graduating in Software Engineering develop and maintain this application through the degree Capstone course, SER 401 and 402.
+
 This application is split up into two different entities:
 - Field Day Desktop App
 - Field Day PWA (mobile application)
 
-This guide extensively covers how to use the Desktop application. A guide for the mobile app is still a work in progress!
+This guide extensively covers how to use the Desktop application. A guide for the mobile app is still to come!
 
 # Getting Started
 
@@ -63,11 +48,11 @@ The Desktop Field Day app is located at : https://asu-field-day-webui.web.app/lo
 
 Sign in to this portal by hitting log in and logging in with your ASU-affiliated Google account.
 
-## Application Features
+# Application Features
 ### Dashboard Overview
 This is main screen once you have authenticated through your ASU email. All tabs are different tables of different critters caught out in the field.
 
-![img.png](img.png)
+![img_10.png](FieldDayGuideImages/img_10.png)
 Currently, there are 7 different tabs:
 1. Turtle
 2. Lizard
@@ -77,85 +62,89 @@ Currently, there are 7 different tabs:
 6. Amphibian
 7. Session
 
-Each tab
+Each tab is self-describing, as it contains the data for each critter species.
+
+The Session tab is for the entries created during the current session. More on sessions *** HERE. *** ADD HYPERLINK.
 
 One of the most important things to take note here is the Data Source Tab:
 
-![img_1.png](img_1.png)
+![img_1.png](FieldDayGuideImages/img_1.png)
 
 This tab switches between which set of data to use. There are two selections: Live and Test
 - Live is the live database. This is the most up-to-date data and the live data being collected in the field. Be careful when editing this data!
 - Test is a test environment. These entries are mostly the development team testing out different features on the application to make sure they work. Change these entries to your heart's desire.
 
 
+### Managing Entries
+All entries are available to be viewed on the desktop application. To edit/delete/alter in any way these entries, you can click the edit or delete button on the side of each entry under the "Actions" column.
 
-### Scheduling Activities
-Instructions on how to schedule activities for the field day event.
+![img_2.png](FieldDayGuideImages/img_2.png)
 
-### Managing Participants
-Guide to adding, updating, and removing participants.
+For example, this Lizard entry has the edit button and delete button next to it. Clicking the edit button makes these fields editable:
 
-### Monitoring Field Day Events
-How to monitor and track ongoing field day events in real-time.
+![img_3.png](FieldDayGuideImages/img_3.png)
 
-### Notifications & Alerts
-Overview of notifications and alert settings for timely updates.
+Now you can edit whatever information you need. To save or discard these changes, hit the check or X button, respectively.
 
-## Detailed Instructions
-### How to Schedule an Event
-Step-by-step guide to scheduling an event.
+## Editing the Table View
 
-### How to Add a New Participant
-Instructions on adding a new participant to the field day.
+If a certain page is too crowded, or has information you don't need to take into consideration at a certain point in time, fields are able to be removed from the table using the editor in the top right corner:
 
-### How to Track Participant Progress
-Overview of tracking and viewing progress for each participant.
+![img_7.png](FieldDayGuideImages/img_7.png)
 
-## Account Settings
-### Editing Profile Information
-How to edit and update your profile information.
+Clicking the three-card button, it shows this menu: (not all shown for image size purposes):
 
-### Changing Password
-Steps to change your account password.
+![img_8.png](FieldDayGuideImages/img_8.png)
 
-### Privacy Settings
-Options for managing privacy settings within the app.
+As an example, if you only wanted to view Year, Date & Time, and Site, you can deselect all options. This is what the page would look like after:
 
-## Data and Analytics
-### Viewing Event Data
-Guide to accessing and analyzing event data.
+![img_9.png](FieldDayGuideImages/img_9.png)
+
+
+
+### Searching For Entries 
+Searching for different critters is now easier than ever. Using the search bar, you can search for multiple terms to find the exact entry you need.
+
+For example: In the lizard tab, say you wanted to find lizards of species code ASTI with toe-clip code C1.
+
+First, type ASTI into the search box. For any other term you want to search, add a +. i.e.:
+![img.png](FieldDayGuideImages/img.png)
+
+
+# Detailed Instructions For Data Handling
 
 ### Exporting Reports
-Instructions on exporting reports in various formats.
 
+At the bottom of any page in the Field Day app, you can find 4 buttons:
+
+![img_4.png](FieldDayGuideImages/img_4.png)
+
+The button that looks like an arrow coming out of a rectangle, or, this one:![img_5.png](FieldDayGuideImages/img_5.png) is the Export button.
+
+Click this button to bring up a dialogue to select which data to convert to a CSV document. This document can easily be opened in Excel or other data applications for further processing.
+
+Any of the data on the Field Day app can be generated into this file, as shown in the menu:
+
+![img_6.png](FieldDayGuideImages/img_6.png)
+
+You may also choose to only export from the current session or the data already saved to the database.
+
+After clicking "Generate CSV", the CSV file will be downloaded to your computer.
 ## Troubleshooting
 ### Common Issues
-List of common issues and solutions.
+To be written.
 
 ### FAQs
 Frequently Asked Questions about using the Field Day App.
 
+-- TODO: Ask Heather about how her team uses the app and any questions they ask her on the day to day.
+
 ## Support & Feedback
-### Contact Support
-How to reach the support team for help.
 
-### Providing Feedback
-Instructions for submitting feedback or suggestions.
+Please reach out to Dr. Bateman with any requests to make this app a better place for all of us!
 
-## Legal Information
-### Terms of Service
-Link and information on the app’s terms of service.
-
-### Privacy Policy
-Overview of the app’s privacy policy.
-
-## Appendix
-### Glossary of Terms
-Definitions of common terms used within the Field Day App.
-
-### Additional Resources
-Links and resources for further information.
+Any change requests will greatly help out future capstone teams and their work in developing and maintaining this app :)
 
 ---
 
-Thank you for using the Field Day App. We hope this guide helps you get the most out of your experience!
+Last Updated: 11/3/2024
