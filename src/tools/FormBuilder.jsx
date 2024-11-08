@@ -14,6 +14,8 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const [selectedData, setSelectedData] = useState('');
     const [editData, setEditData] = useState({});
     const [editModalVisible, setEditModalVisible] = useState(false);
+    const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+
     
     // New Document Creation Modal state
     const [showNewDocumentModal, setShowNewDocumentModal] = useState(false);
@@ -166,17 +168,19 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
             <div className="bg-white p-6 rounded-lg shadow-lg w-80">
                 <h2 className="text-xl font-bold mb-4">Delete Options</h2>
-                
+                <p className="text-gray-600 mb-4 text-center">
+                        Delete entire array will allow you to delete the array document in its entirety and delete array field will let you delete a primary field from your array of choice.
+                    </p>
                 <div className="flex flex-col mb-4">
                     <Button 
                         onClick={() => setDeleteMode('array')}
                         text="Delete Entire Array"
-                        className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                        className="bg-white text-black border border-black px-4 py-2 w-full"
                     />
                     <Button 
                         onClick={() => setDeleteMode('field')}
                         text="Delete Array Field"
-                        className="bg-white-500 text-white px-4 py-2 rounded"
+                        className="bg-white text-black border border-black px-4 py-2 w-full mt-2"
                     />
                 </div>
 
@@ -217,20 +221,20 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                             setDeleteMode('');
                         }}
                         text="Cancel"
-                        className="bg-gray-400 text-white px-4 py-2 rounded"
+                        className="bg-red text-white px-4 py-2 rounded mb-2"
                     />
                     {deleteMode === 'array' ? (
                         <Button
                             onClick={confirmDeleteArray}
                             text="Delete Array"
-                            className="bg-red-500 text-white px-4 py-2 rounded"
+                            className="bg-red text-white px-6 py-3 rounded w-full"
                             disabled={!selectedArray}
                         />
                     ) : (
                         <Button
                             onClick={confirmDeletePrimaryField}
                             text="Delete Field"
-                            className="bg-red-500 text-white px-4 py-2 rounded"
+                            className="bg-red text-white px-6 py-3 rounded w-full"
                             disabled={!selectedField}
                         />
                     )}
@@ -285,7 +289,17 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
 
     const handleDataSelection = (data) => {
         const selectedAnswer = selectedDocument.answers.find(answer => answer.primary === data);
-        setEditData(selectedAnswer || {});
+        
+        // If the selected document's name ends with "Species", set genus and species separately
+        if (selectedDocument.set_name.endsWith("Species") && selectedAnswer) {
+            setEditData({
+                primary: selectedAnswer.primary,
+                genus: selectedAnswer.secondary?.Genus || '',
+                species: selectedAnswer.secondary?.Species || '',
+            });
+        } else {
+            setEditData(selectedAnswer || {});
+        }
     };
 
     const handleEditChange = (key, value) => {
@@ -295,20 +309,43 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         }));
     };
 
-    const submitChanges = async () => {
-        if (selectedDocument && selectedData) {
-            const docRef = doc(db, 'AnswerSet', selectedDocument.set_name);
-            const updatedAnswers = selectedDocument.answers.map((answer) =>
-                answer.primary === selectedData ? { ...editData, primary: selectedData } : answer
-            );
-            await setDoc(docRef, { ...selectedDocument, answers: updatedAnswers });
-            triggerRerender();
-        }
-    };
-
     const renderEditDataFields = () => {
         if (!editData || Object.keys(editData).length === 0) {
             return <p>No data available to edit.</p>;
+        }
+    
+        if (selectedDocument && selectedDocument.set_name.endsWith("Species")) {
+            return (
+                <div>
+                    <div className="flex flex-col">
+                        <label className="text-md">Primary</label>
+                        <input
+                            type="text"
+                            className="border p-2 rounded"
+                            value={editData.primary}
+                            onChange={(e) => handleEditChange("primary", e.target.value)}
+                        />
+                    </div>
+                    <div className="flex flex-col">
+                        <label className="text-md">Genus</label>
+                        <input
+                            type="text"
+                            className="border p-2 rounded"
+                            value={editData.genus}
+                            onChange={(e) => handleEditChange("genus", e.target.value)}
+                        />
+                    </div>
+                    <div className="flex flex-col">
+                        <label className="text-md">Species</label>
+                        <input
+                            type="text"
+                            className="border p-2 rounded"
+                            value={editData.species}
+                            onChange={(e) => handleEditChange("species", e.target.value)}
+                        />
+                    </div>
+                </div>
+            );
         }
         return Object.entries(editData).map(([key, value]) => (
             <div key={key} className="flex flex-col">
@@ -322,6 +359,57 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
             </div>
         ));
     };
+
+    const submitChanges = async () => {
+        if (selectedDocument && selectedData) {
+            try {
+                const docRef = doc(db, 'AnswerSet', selectedDocument.docId);
+    
+                const updatedAnswers = selectedDocument.answers?.map((answer) => {
+                    if (answer.primary === selectedData) {
+                        const updatedAnswer = {
+                            primary: editData.primary || answer.primary,
+                        };
+    
+                        // Add secondary fields only if the document is a species document
+                        if (selectedDocument.set_name.endsWith("Species")) {
+                            updatedAnswer.secondary = {
+                                Genus: editData.genus || answer.secondary?.Genus || "",
+                                Species: editData.species || answer.secondary?.Species || "",
+                            };
+                        }
+    
+                        return updatedAnswer;
+                    }
+                    return answer;
+                }) || [];
+    
+                await updateDoc(docRef, {
+                    answers: updatedAnswers,
+                });
+    
+                console.log(`Document ${selectedDocument.set_name} updated successfully in Firebase.`);
+                triggerRerender();
+    
+                // Show the success popup
+                setShowSuccessPopup(true);
+    
+                // Close the edit modal after saving
+                setEditModalVisible(false);
+    
+            } catch (error) {
+                console.error("Error updating document in Firebase:", error);
+                alert("Failed to update the document.");
+            }
+        } else {
+            alert("Please select a document and data to update.");
+        }
+    };
+    
+    
+    
+    
+    
 
     const handleAddSecondaryKey = () => {
         if (newSecondaryKey.trim() !== '') {
@@ -520,22 +608,22 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                         <Button
                             onClick={() => setModalStep(2)}
                             text="AnswerSet"
-                            className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+                            className="bg-white text-black border border-black px-4 py-2 rounded mb-2 w-full"
                         />
                         <Button
                             onClick={handleDeleteArrayClick}
                             text="Delete Array"
-                            className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+                            className="bg-white text-black border border-black px-4 py-2 rounded mb-2 w-full"
                         />
                         <Button
                            onClick={handleAddSite}
                            text="Add Site"
-                           className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+                           className="bg-white text-black border border-black px-4 py-2 rounded mb-2 w-full"
                         />
                         <Button
                            onClick={handleAddSpecies}
                            text="Add Species"
-                           className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+                           className="bg-white text-black border border-black px-4 py-2 rounded mb-2 w-full"
                         />
                        
                     </div>
@@ -544,6 +632,9 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                 return (
                     <div className="p-6 bg-white rounded-lg flex flex-col items-center">
                         <h2 className="text-xl font-bold mb-4">Document Options</h2>
+                        <p className="text-gray-600 mb-4 text-center">
+                        Please select one of the options below to modify or create a new document. Use the "Modify Existing Document" option to edit, or the "Create New Document" option to start a new document.
+                        </p>
                         <div className="flex flex-col gap-4 w-full max-w-xs">
                             <Button 
                                 onClick={() => setModalStep(3)} 
@@ -580,10 +671,10 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     };
 
     return (
-        <div className="flex justify-center items-center bg-gray-100 h-screen overflow-y-auto">
-            <div className="w-[600px] h-[400px] bg-white rounded-lg shadow-lg p-4">
-                {renderModalContent()}
-            </div>
+        <div className="flex justify-center items-center bg-white-100 overflow-hidden">
+           <div className="w-[600px] max-h-[400px] bg-white rounded-lg shadow-lg p-4 overflow-hidden">
+            {renderModalContent()}
+        </div>
 
             {showDeleteConfirm && renderDeleteArrayModal()}
             {/* Add Site Options Modal */}
@@ -614,7 +705,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                                         fetchSitesForProject(selectedProject);
                                     }}
                                     text="View Existing Sites"
-                                    className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+                                    className="bg-white text-black border border-black px-4 py-2 rounded mb-2 w-full"
                                 />
                                 <Button
                                     onClick={() => {
@@ -622,7 +713,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                                         setShowViewSites(false);
                                     }}
                                     text="Add New Site"
-                                    className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+                                    className="bg-white text-black border border-black px-4 py-2 rounded mb-2 w-full"
                                 />
                             </>
                         )}
@@ -630,7 +721,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
             <Button
                 onClick={() => setShowAddSiteModal(false)}
                 text="Close"
-                className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+                className="bg-red text-white px-4 py-2 rounded mb-2"
             />
         </div>
     </div>
@@ -799,7 +890,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                         <Button
                             onClick={() => setShowAddSpeciesModal(false)}
                             text="Close"
-                            className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+                            className="bg-red text-white px-4 py-2 rounded mb-2"
                         />
                     </div>
                 </div>
@@ -834,17 +925,18 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                             <Button
                                 onClick={() => setShowAddSpeciesForm(false)}
                                 text="Cancel"
-                                className="bg-white-400 text-black px-4 py-2 rounded"
+                                className="bg-red text-white px-4 py-2 rounded"
                             />
                             <Button
                                 onClick={addNewSpecies}
                                 text="Add Species"
-                                className="bg-white-500 text-black px-4 py-2 rounded"
+                                className="bg-red text-white px-4 py-2 rounded"
                             />
                         </div>
                     </div>
                 </div>
             )}
+
         </div>
     );
 }

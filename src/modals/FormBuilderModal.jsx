@@ -6,9 +6,9 @@ export default function FormBuilderModal({ showModal, onCancel, onOkay, triggerR
     const [modalStep, setModalStep] = useState(1);
 
     const handleBack = () => {
-        console.log("Back button clicked");
-        setModalStep(2);
-        console.log("modalStep after setting to 2:", modalStep);
+        if (modalStep > 1) {
+            setModalStep(modalStep - 1);
+        }
     };
 
     console.log("Rendering FormBuilderModal - Current modalStep:", modalStep);
@@ -18,11 +18,11 @@ export default function FormBuilderModal({ showModal, onCancel, onOkay, triggerR
             showModal={showModal}
             onCancel={onCancel}
             onOkay={onOkay}
-            onBack={handleBack}
+            onBack={modalStep > 1 ? handleBack : null}
             title="Form Builder"
             text="Create custom forms in a few easy steps with Field Day!"
             buttonOptions={{
-                back: 'Back',
+                back: modalStep > 1 ? 'Back' : '',
                 cancel: 'Close',
                 okay: '',
             }}
