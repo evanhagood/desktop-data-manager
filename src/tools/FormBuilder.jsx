@@ -44,6 +44,9 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const [showAddSpeciesForm, setShowAddSpeciesForm] = useState(false);
     const [selectedCritter, setSelectedCritter] = useState('');
 
+    const [newPrimary, setNewPrimary] = useState('');
+    const [newGenus, setNewGenus] = useState('');
+    const [newSpecies, setNewSpecies] = useState('');
 
     const critterOptions = ["Lizard", "Mammal", "Snake", "Amphibian", "Turtle"];
 
@@ -68,8 +71,8 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         }
     }, [refreshSpecies]);
 
-    const handleCritterSelection = (critter) => {
-        setSelectedCritter(critter);
+    const handleCritterSelection = (critterName) => {
+        setSelectedCritter(critterName);
     };
 
 
@@ -343,9 +346,9 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
 
     const handleAddSpecies = () => {
         setShowAddSpeciesModal(true); 
-        setShowAddSpeciesForm(false);  // Reset to not show the form initially
-        setShowViewSpecies(false);    // Reset to not show the view list initially
-        setSelectedProject('');     // Reset the project selection
+        setShowAddSpeciesForm(false); 
+        setSelectedProject(''); 
+        setSelectedCritter('');
     };
     
     const fetchSpeciesForProjectAndCritter = async () => {
@@ -460,32 +463,44 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     };
     
     const addNewSpecies = async () => {
-        if (selectedProject && selectedCritter && newSpeciesName.trim()) {
-            const projectCritterSetName = `${selectedProject}${selectedCritter}Species`;
-
+        if (selectedProject && selectedCritter && newPrimary.trim() && newGenus.trim() && newSpecies.trim()) {
             try {
-                const q = query(collection(db, 'AnswerSet'), where('set_name', '==', projectCritterSetName));
+                const projectSetName = `${selectedProject}${selectedCritter}Species`;
+                const q = query(collection(db, 'AnswerSet'), where('set_name', '==', projectSetName));
                 const querySnapshot = await getDocs(q);
-
+                
                 if (!querySnapshot.empty) {
                     const docSnapshot = querySnapshot.docs[0];
                     const docRef = doc(db, 'AnswerSet', docSnapshot.id);
 
+                    const newEntry = {
+                        primary: newPrimary,
+                        secondary: {
+                            Genus: newGenus,
+                            Species: newSpecies,
+                        }
+                    };
+
                     await updateDoc(docRef, {
-                        answers: [...docSnapshot.data().answers, { primary: newSpeciesName }]
+                        answers: [...docSnapshot.data().answers, newEntry]
                     });
 
-                    console.log(`Species "${newSpeciesName}" added to ${projectCritterSetName} successfully.`);
-                    setNewSpeciesName('');
-                    fetchSpeciesForProjectAndCritter(); // Refresh species list
+                    console.log(`Species "${newPrimary}" added to ${projectSetName} successfully.`);
+                    setNewPrimary('');
+                    setNewGenus('');
+                    setNewSpecies('');
+                    setShowAddSpeciesForm(false);
+                    setShowAddSpeciesModal(false);
+                    triggerRerender();
                 } else {
-                    console.error(`Document with set_name ${projectCritterSetName} does not exist.`);
+                    console.error(`Document with set_name ${projectSetName} does not exist in the AnswerSet collection.`);
                 }
             } catch (error) {
-                console.error(`Error adding new species to ${projectCritterSetName}:`, error);
+                console.error(`Error adding new species to ${selectedProject}:`, error);
+                alert('Failed to add the species.');
             }
         } else {
-            alert("Please select a project, critter, and enter a species name.");
+            alert("Please select a project, critter, and enter all species details.");
         }
     };
     
@@ -745,8 +760,6 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-lg shadow-lg w-80">
                         <h2 className="text-xl font-bold mb-4">Species Options</h2>
-
-                        {/* Project Selection Dropdown */}
                         <label className="block mb-2 font-medium">Select Project:</label>
                         <select
                             value={selectedProject}
@@ -759,7 +772,6 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                             <option value="Virgin River">Virgin River</option>
                         </select>
 
-                        {/* Critter Selection Dropdown */}
                         <label className="block mb-2 font-medium">Select Critter:</label>
                         <select
                             value={selectedCritter}
@@ -767,28 +779,17 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                             className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
                         >
                             <option value="">Select a Critter</option>
-                            {critterOptions.map((critter, index) => (
-                                <option key={index} value={critter}>{critter}</option>
-                            ))}
+                            <option value="Lizard">Lizard</option>
+                            <option value="Mammal">Mammal</option>
+                            <option value="Snake">Snake</option>
+                            <option value="Amphibian">Amphibian</option>
+                            <option value="Turtle">Turtle</option>
                         </select>
 
-                        {/* View and Add Buttons */}
                         {selectedProject && selectedCritter && (
                             <>
                                 <Button
-                                    onClick={() => {
-                                        setShowViewSpecies(true);
-                                        setShowAddSpeciesForm(false);
-                                        fetchSpeciesForProjectAndCritter();
-                                    }}
-                                    text="View Existing Species"
-                                    className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
-                                />
-                                <Button
-                                    onClick={() => {
-                                        setShowAddSpeciesForm(true);
-                                        setShowViewSpecies(false);
-                                    }}
+                                    onClick={() => setShowAddSpeciesForm(true)}
                                     text="Add New Species"
                                     className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
                                 />
@@ -804,36 +805,30 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                 </div>
             )}
 
-            {/* View Species Modal */}
-            {showViewSpecies && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
-                        <h2 className="text-xl font-bold mb-4">Existing Species for {selectedProject} - {selectedCritter}</h2>
-                        <ul className="space-y-2">
-                            {speciesOptions.map((species, index) => (
-                                <li key={index} className="text-black-800">{species}</li>
-                            ))}
-                        </ul>
-                        <Button
-                            onClick={() => setShowViewSpecies(false)}
-                            text="Close"
-                            className="bg-white text-black border border-black px-4 py-2 rounded mt-4"
-                        />
-                    </div>
-                </div>
-            )}
-
-            {/* Add New Species Modal */}
             {showAddSpeciesForm && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-lg shadow-lg w-80">
                         <h2 className="text-xl font-bold mb-4">Enter New Species</h2>
                         <input
                             type="text"
-                            value={newSpeciesName}
-                            onChange={(e) => setNewSpeciesName(e.target.value)}
+                            value={newPrimary}
+                            onChange={(e) => setNewPrimary(e.target.value)}
                             className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
-                            placeholder="Enter species name"
+                            placeholder="Primary"
+                        />
+                        <input
+                            type="text"
+                            value={newGenus}
+                            onChange={(e) => setNewGenus(e.target.value)}
+                            className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                            placeholder="Genus"
+                        />
+                        <input
+                            type="text"
+                            value={newSpecies}
+                            onChange={(e) => setNewSpecies(e.target.value)}
+                            className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                            placeholder="Species"
                         />
                         <div className="flex justify-end space-x-2">
                             <Button
@@ -853,6 +848,3 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         </div>
     );
 }
-
-
-    
