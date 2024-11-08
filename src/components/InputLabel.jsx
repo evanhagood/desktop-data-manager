@@ -2,10 +2,10 @@ import classNames from "classnames";
 import React from 'react';
 
 export default function InputLabel({
-    label,
-    layout = "horizontal",
-    input,
-}) {
+                                       label,
+                                       layout = "horizontal",
+                                       input,
+                                   }) {
     const containerClass = classNames("relative", {
         "flex flex-col": layout === "vertical",
         "flex justify-center": layout === "horizontal",

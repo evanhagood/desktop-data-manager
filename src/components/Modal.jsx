@@ -17,7 +17,7 @@ export default function Modal({
         back: null,
     }
 }) {
-    console.log("buttonOptions:", buttonOptions);
+   
     return (
         <motion.div
             className={`relative z-50`}

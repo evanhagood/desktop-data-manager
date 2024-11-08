@@ -69,7 +69,6 @@ export class Authenticator {
                     return false;
                 }
             }
-
             //this records login history after authentication is done
             await this.addLoginHistory(email);
 

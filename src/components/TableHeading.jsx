@@ -22,5 +22,5 @@ export const TableHeading = ({ label, active, sortDirection, onClick }) => {
                 <span className="flex-4 text-xl ml-1">{getSortIcon()}</span>
             </div>
         </th>
-      );
-  };
+    );
+};
