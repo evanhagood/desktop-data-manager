@@ -3,6 +3,7 @@ import { collection, getDocs, setDoc, doc, addDoc } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import { getDoc, updateDoc, deleteField  } from 'firebase/firestore';
 import { deleteDoc } from 'firebase/firestore';
+import { query, where } from 'firebase/firestore';
 import Button from '../components/Button';
 import React from 'react';
 
@@ -31,6 +32,9 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const [refreshSites, setRefreshSites] = useState(false);
     const [showViewSites, setShowViewSites] = useState(false);
     const [showAddSiteForm, setShowAddSiteForm] = useState(false);
+    const [selectedProject, setSelectedProject] = useState('');
+    const [siteOptions, setSiteOptions] = useState([]);
+
 
 
 
@@ -309,9 +313,10 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     };
 
     const handleAddSite = () => {
-        setShowAddSiteModal(true); // Opens the main "Add Site" modal
-        setShowAddSiteForm(false);  // Resets to not show the form initially
-        setShowViewSites(false);    // Resets to not show the view list initially
+        setShowAddSiteModal(true); // Open the "Add Site" modal
+        setShowAddSiteForm(false);  // Reset to not show the form initially
+        setShowViewSites(false);    // Reset to not show the view list initially
+        setSelectedProject('');     // Reset the project selection
     };
     
     const handleAddSpecies = () => {
@@ -340,6 +345,91 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         } catch (error) {
             console.error('Error fetching sites:', error);
         }
+    };
+
+    const fetchSitesForProject = async (projectName) => {
+        const projectSetName = `${projectName}Sites`; // Construct the value to match in the `set_name` field
+    
+        try {
+            // Query the AnswerSet collection to find the document with set_name equal to projectSetName
+            const q = query(collection(db, 'AnswerSet'), where('set_name', '==', projectSetName));
+            const querySnapshot = await getDocs(q);
+    
+            if (!querySnapshot.empty) {
+                const docSnapshot = querySnapshot.docs[0]; // Assuming there's only one document per project
+    
+                const data = docSnapshot.data();
+                const answers = data.answers || {}; // Retrieve answers map
+                const siteNames = Object.values(answers).map((entry) => entry.primary); // Extract primary fields
+    
+                setSiteOptions(siteNames); // Populate site options with primary field values
+                console.log(`Fetched sites for project ${projectName}:`, siteNames);
+            } else {
+                console.error(`Document with set_name ${projectSetName} does not exist in the AnswerSet collection.`);
+                setSiteOptions([]); // Clear sites if no matching document is found
+            }
+        } catch (error) {
+            console.error(`Error fetching sites for project ${projectName}:`, error);
+        }
+    };
+    
+
+    const handleProjectSelection = (projectName) => {
+        setSelectedProject(projectName);
+        fetchSitesForProject(projectName); // Populate site options for the selected project
+    };
+
+    const renderExistingSites = () => {
+        return (
+            <ul className="space-y-2">
+                {siteOptions.map((site, index) => (
+                    <li key={index} className="text-black-800">{site}</li>
+                ))}
+            </ul>
+        );
+    };
+    
+    
+
+    const addNewSite = async () => {
+        if (selectedProject && newSiteName.trim()) {
+            try {
+                const projectSetName = `${selectedProject}Sites`; // Construct the document identifier
+    
+                // Query to find the specific document in the AnswerSet collection
+                const q = query(collection(db, 'AnswerSet'), where('set_name', '==', projectSetName));
+                const querySnapshot = await getDocs(q);
+    
+                if (!querySnapshot.empty) {
+                    const docSnapshot = querySnapshot.docs[0]; // Get the first matching document
+                    const docRef = doc(db, 'AnswerSet', docSnapshot.id); // Reference to the correct document
+    
+                    // Update the `answers` field with the new site name
+                    await updateDoc(docRef, {
+                        answers: [...docSnapshot.data().answers, { primary: newSiteName }]
+                    });
+    
+                    console.log(`Site "${newSiteName}" added to ${projectSetName} successfully.`);
+                    setNewSiteName(''); // Clear input field
+                    fetchSitesForProject(selectedProject); // Refresh site list to include the new site
+                } else {
+                    console.error(`Document with set_name ${projectSetName} does not exist in the AnswerSet collection.`);
+                }
+            } catch (error) {
+                console.error(`Error adding new site to ${selectedProject}:`, error);
+                alert('Failed to add the site.');
+            }
+        } else {
+            alert("Please select a project and enter a site name.");
+        }
+    };
+    
+    
+    const addSiteToProjectDocument = async (project, siteName) => {
+        const projectDocument = `${project}Sites`;
+        await updateDoc(doc(db, 'AnswerSet', projectDocument), {
+            answers: arrayUnion({ primary: siteName })
+        });
     };
 
     const renderModalContent = () => {
@@ -415,29 +505,49 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
             <div className="w-[600px] h-[400px] bg-white rounded-lg shadow-lg p-4">
                 {renderModalContent()}
             </div>
+
             {showDeleteConfirm && renderDeleteArrayModal()}
             {/* Add Site Options Modal */}
             {showAddSiteModal && (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white p-6 rounded-lg shadow-lg w-80">
             <h2 className="text-xl font-bold mb-4">Site Options</h2>
-            <Button
-                onClick={() => {
-                    setShowViewSites(true);
-                    setShowAddSiteForm(false);
-                    fetchSites();
-                }}
-                text="View Existing Sites"
-                className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
-            />
-            <Button
-                onClick={() => {
-                    setShowAddSiteForm(true);
-                    setShowViewSites(false);
-                }}
-                text="Add New Site"
-                className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
-            />
+             {/* Project Selection Dropdown */}
+             <label className="block mb-2 font-medium">Select Project:</label>
+                        <select
+                            value={selectedProject}
+                            onChange={(e) => handleProjectSelection(e.target.value)}
+                            className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                        >
+                            <option value="">Select a Project</option>
+                            <option value="Gateway">Gateway</option>
+                            <option value="San Pedro">San Pedro</option>
+                            <option value="Virgin River">Virgin River</option>
+                        </select>
+
+                        {/* Conditional buttons displayed after project selection */}
+                        {selectedProject && (
+                            <>
+                                <Button
+                                    onClick={() => {
+                                        setShowViewSites(true);
+                                        setShowAddSiteForm(false);
+                                        fetchSitesForProject(selectedProject);
+                                    }}
+                                    text="View Existing Sites"
+                                    className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+                                />
+                                <Button
+                                    onClick={() => {
+                                        setShowAddSiteForm(true);
+                                        setShowViewSites(false);
+                                    }}
+                                    text="Add New Site"
+                                    className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+                                />
+                            </>
+                        )}
+
             <Button
                 onClick={() => setShowAddSiteModal(false)}
                 text="Close"
@@ -448,26 +558,19 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
 )}
             {/* View Sites Modal */}
             {showViewSites && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
-                        <h2 className="text-xl font-bold mb-4">Existing Sites</h2>
-                        <ul className="space-y-2">
-                            {sites.length > 0 ? (
-                                sites.map((site, index) => (
-                                    <li key={index} className="text-black-800">{site}</li>
-                                ))
-                            ) : (
-                                <li className="text-black-500">No sites available</li>
-                            )}
-                        </ul>
-                        <Button
-                            onClick={() => setShowViewSites(false)}
-                            text="Close"
-                            className="bg-white text-black border border-black px-4 py-2 rounded mt-4"
-                        />
-                    </div>
-                </div>
-            )}
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+            <h2 className="text-xl font-bold mb-4">Existing Sites for {selectedProject}</h2>
+            {renderExistingSites()}
+            <Button
+                onClick={() => setShowViewSites(false)}
+                text="Close"
+                className="bg-white text-black border border-black px-4 py-2 rounded mt-4"
+            />
+        </div>
+    </div>
+)}
+
             {/* New Document Modal */}
             {showNewDocumentModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
@@ -536,29 +639,8 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                 </div>
             )}
             
-{showViewSites && (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg w-80">
-            <h2 className="text-xl font-bold mb-4">Existing Sites</h2>
-            <ul className="space-y-2">
-                {sites.length > 0 ? (
-                    sites.map((site, index) => (
-                        <li key={index} className="text-black-800">{site}</li>
-                    ))
-                ) : (
-                    <li className="text-black-500">No sites available</li>
-                )}
-            </ul>
-            <Button
-                onClick={() => setShowViewSites(false)}
-                text="Close"
-                className="bg-white-400 text-black px-4 py-2 rounded mt-4"
-            />
-        </div>
-    </div>
-)}  
 
-{showAddSiteForm && (
+            {showAddSiteForm && (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white p-6 rounded-lg shadow-lg w-80">
             <h2 className="text-xl font-bold mb-4">Enter New Site</h2>
@@ -578,8 +660,8 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                 <Button
                     onClick={async () => {
                         if (newSiteName.trim()) {
-                            await addSiteToDatabase(newSiteName);
-                            setNewSiteName('');
+                            await addNewSite(); // Call the addNewSite function here
+                            setNewSiteName(''); // Clear input field
                             setShowAddSiteForm(false);
                             setShowAddSiteModal(false);
                         } else {
@@ -593,6 +675,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         </div>
     </div>
 )}
+
 
         </div>
     );
