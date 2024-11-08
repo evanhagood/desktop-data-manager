@@ -27,7 +27,12 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const [deleteMode, setDeleteMode] = useState('');
     const [showAddSiteModal, setShowAddSiteModal] = useState(false);
     const [newSiteName, setNewSiteName] = useState('');
+    const [sites, setSites] = useState([]);
     const [refreshSites, setRefreshSites] = useState(false);
+    const [showViewSites, setShowViewSites] = useState(false);
+    const [showAddSiteForm, setShowAddSiteForm] = useState(false);
+
+
 
 
     useEffect(() => {
@@ -35,6 +40,13 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     }, [modalStep]);
 
   
+    useEffect(() => {
+        if (refreshSites) {
+            fetchSites();
+            setRefreshSites(false);
+        }
+    }, [refreshSites]);
+
 
     const fetchDocuments = async () => {
         try {
@@ -297,9 +309,10 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     };
 
     const handleAddSite = () => {
-        setShowAddSiteModal(true); // Open the modal to add a new site
+        setShowAddSiteModal(true); // Opens the main "Add Site" modal
+        setShowAddSiteForm(false);  // Resets to not show the form initially
+        setShowViewSites(false);    // Resets to not show the view list initially
     };
-    
     
     const handleAddSpecies = () => {
         console.log("Add Species button clicked");
@@ -311,11 +324,21 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         try {
             const docRef = collection(db, 'Sites'); // Ensure 'Sites' is the correct collection name
             await addDoc(docRef, { name: siteName });
-            setRefreshSites(prev => !prev); // Trigger dropdown refresh
+            setRefreshSites(true); // Trigger dropdown refresh
             console.log(`Site ${siteName} added successfully.`);
         } catch (error) {
             console.error('Error adding site:', error);
             alert('Failed to add the site.');
+        }
+    };
+
+    const fetchSites = async () => {
+        try {
+            const sitesSnapshot = await getDocs(collection(db, 'Sites')); // Ensure 'Sites' is the correct collection name
+            const siteList = sitesSnapshot.docs.map(doc => doc.data().name);
+            setSites(siteList);
+        } catch (error) {
+            console.error('Error fetching sites:', error);
         }
     };
 
@@ -328,22 +351,22 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                         <Button
                             onClick={() => setModalStep(2)}
                             text="AnswerSet"
-                            className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                            className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
                         />
                         <Button
                             onClick={handleDeleteArrayClick}
                             text="Delete Array"
-                            className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                            className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
                         />
                         <Button
                            onClick={handleAddSite}
                            text="Add Site"
-                           className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                           className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
                         />
                         <Button
                            onClick={handleAddSpecies}
                            text="Add Species"
-                           className="bg-white-500 text-white px-4 py-2 rounded mb-2"
+                           className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
                         />
                        
                     </div>
@@ -356,12 +379,12 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                             <Button 
                                 onClick={() => setModalStep(3)} 
                                 text="Modify Existing Document" 
-                                className="bg-white-500 text-white px-6 py-3 rounded w-full" 
+                                className="bg-white text-black border border-black px-6 py-3 rounded w-full" 
                             />
                             <Button 
                                 onClick={() => setShowNewDocumentModal(true)} 
                                 text="Create New Document" 
-                                className="bg-white-500 text-white px-6 py-3 rounded w-full" 
+                                className="bg-white text-black border border-black px-6 py-3 rounded w-full" 
                             />
                         </div>
                     </div>
@@ -376,7 +399,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                                     key={index}
                                     onClick={() => handleDocumentClick(doc)}
                                     text={doc.set_name || `Document ${index + 1}`}
-                                    className="bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300 w-full"
+                                    className="bg-white text-black border border-black px-4 py-2 rounded hover:bg-gray-300 w-full"
                                 />
                             ))}
                         </ul>
@@ -393,6 +416,58 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                 {renderModalContent()}
             </div>
             {showDeleteConfirm && renderDeleteArrayModal()}
+            {/* Add Site Options Modal */}
+            {showAddSiteModal && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+            <h2 className="text-xl font-bold mb-4">Site Options</h2>
+            <Button
+                onClick={() => {
+                    setShowViewSites(true);
+                    setShowAddSiteForm(false);
+                    fetchSites();
+                }}
+                text="View Existing Sites"
+                className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+            />
+            <Button
+                onClick={() => {
+                    setShowAddSiteForm(true);
+                    setShowViewSites(false);
+                }}
+                text="Add New Site"
+                className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+            />
+            <Button
+                onClick={() => setShowAddSiteModal(false)}
+                text="Close"
+                className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+            />
+        </div>
+    </div>
+)}
+            {/* View Sites Modal */}
+            {showViewSites && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                        <h2 className="text-xl font-bold mb-4">Existing Sites</h2>
+                        <ul className="space-y-2">
+                            {sites.length > 0 ? (
+                                sites.map((site, index) => (
+                                    <li key={index} className="text-black-800">{site}</li>
+                                ))
+                            ) : (
+                                <li className="text-black-500">No sites available</li>
+                            )}
+                        </ul>
+                        <Button
+                            onClick={() => setShowViewSites(false)}
+                            text="Close"
+                            className="bg-white text-black border border-black px-4 py-2 rounded mt-4"
+                        />
+                    </div>
+                </div>
+            )}
             {/* New Document Modal */}
             {showNewDocumentModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
@@ -420,17 +495,17 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                         <Button 
                             onClick={handleAddSecondaryKey} 
                             text="Add Secondary Key" 
-                            className="bg-blue-500 text-white px-4 py-2 rounded w-full mb-4" 
+                            className="bg-white text-black border border-black px-4 py-2 rounded w-full mb-4" 
                         />
                         <Button 
                             onClick={handleSubmitNewDocument} 
                             text="Submit" 
-                            className="bg-green-500 text-white px-4 py-2 rounded w-full mb-2" 
+                            className="bg-white text-black border border-black px-4 py-2 rounded w-full mb-2" 
                         />
                         <Button 
                             onClick={() => setShowNewDocumentModal(false)} 
                             text="Cancel" 
-                            className="bg-gray-400 text-white px-4 py-2 rounded w-full" 
+                            className="bg-white text-black border brder-black px-4 py-2 rounded w-full" 
                         />
                     </div>
                 </div>
@@ -455,46 +530,69 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                         {renderEditDataFields()}
                         <div className="flex justify-end mt-4 space-x-2">
                             <Button onClick={() => setEditModalVisible(false)} text="Cancel" className="bg-gray-400 text-white px-4 py-2 rounded" />
-                            <Button onClick={submitChanges} text="Save" className="bg-blue-500 text-white px-4 py-2 rounded" />
+                            <Button onClick={submitChanges} text="Save" className="bg-white-500 text-black px-4 py-2 rounded" />
                         </div>
                     </div>
                 </div>
             )}
+            
+{showViewSites && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+            <h2 className="text-xl font-bold mb-4">Existing Sites</h2>
+            <ul className="space-y-2">
+                {sites.length > 0 ? (
+                    sites.map((site, index) => (
+                        <li key={index} className="text-black-800">{site}</li>
+                    ))
+                ) : (
+                    <li className="text-black-500">No sites available</li>
+                )}
+            </ul>
+            <Button
+                onClick={() => setShowViewSites(false)}
+                text="Close"
+                className="bg-white-400 text-black px-4 py-2 rounded mt-4"
+            />
+        </div>
+    </div>
+)}  
 
-               {showAddSiteModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
-                        <h2 className="text-xl font-bold mb-4">Enter New Site</h2>
-                        <input
-                            type="text"
-                            value={newSiteName}
-                            onChange={(e) => setNewSiteName(e.target.value)}
-                            className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
-                            placeholder="Enter site name"
-                        />
-                        <div className="flex justify-end space-x-2">
-                            <Button
-                                onClick={() => setShowAddSiteModal(false)}
-                                text="Cancel"
-                                className="bg-gray-400 text-white px-4 py-2 rounded"
-                            />
-                            <Button
-                                onClick={async () => {
-                                    if (newSiteName.trim()) {
-                                        await addSiteToDatabase(newSiteName);
-                                        setNewSiteName('');
-                                        setShowAddSiteModal(false);
-                                    } else {
-                                        alert("Please enter a site name.");
-                                    }
-                                }}
-                                text="Add Site"
-                                className="bg-blue-500 text-white px-4 py-2 rounded"
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
+{showAddSiteForm && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+            <h2 className="text-xl font-bold mb-4">Enter New Site</h2>
+            <input
+                type="text"
+                value={newSiteName}
+                onChange={(e) => setNewSiteName(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                placeholder="Enter site name"
+            />
+            <div className="flex justify-end space-x-2">
+                <Button
+                    onClick={() => setShowAddSiteForm(false)}
+                    text="Cancel"
+                    className="bg-white-400 text-black px-4 py-2 rounded"
+                />
+                <Button
+                    onClick={async () => {
+                        if (newSiteName.trim()) {
+                            await addSiteToDatabase(newSiteName);
+                            setNewSiteName('');
+                            setShowAddSiteForm(false);
+                            setShowAddSiteModal(false);
+                        } else {
+                            alert("Please enter a site name.");
+                        }
+                    }}
+                    text="Add Site"
+                    className="bg-white-500 text-black px-4 py-2 rounded"
+                />
+            </div>
+        </div>
+    </div>
+)}
 
         </div>
     );
