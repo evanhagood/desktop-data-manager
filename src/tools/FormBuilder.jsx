@@ -35,7 +35,17 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const [selectedProject, setSelectedProject] = useState('');
     const [siteOptions, setSiteOptions] = useState([]);
 
+    const [newSpeciesName, setNewSpeciesName] = useState('');
+    const [species, setSpecies] = useState([]);
+    const [refreshSpecies, setRefreshSpecies] = useState(false);
+    const [showViewSpecies, setShowViewSpecies] = useState(false);
+    const [showAddSpeciesModal, setShowAddSpeciesModal] = useState(false);
+    const [speciesOptions, setSpeciesOptions] = useState([]);
+    const [showAddSpeciesForm, setShowAddSpeciesForm] = useState(false);
+    const [selectedCritter, setSelectedCritter] = useState('');
 
+
+    const critterOptions = ["Lizard", "Mammal", "Snake", "Amphibian", "Turtle"];
 
 
 
@@ -50,6 +60,18 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
             setRefreshSites(false);
         }
     }, [refreshSites]);
+
+    useEffect(() => {
+        if (refreshSpecies) {
+            fetchSpecies();
+            setRefreshSpecies(false);
+        }
+    }, [refreshSpecies]);
+
+    const handleCritterSelection = (critter) => {
+        setSelectedCritter(critter);
+    };
+
 
 
     const fetchDocuments = async () => {
@@ -318,22 +340,34 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         setShowViewSites(false);    // Reset to not show the view list initially
         setSelectedProject('');     // Reset the project selection
     };
-    
+
     const handleAddSpecies = () => {
-        console.log("Add Species button clicked");
-       
+        setShowAddSpeciesModal(true); 
+        setShowAddSpeciesForm(false);  // Reset to not show the form initially
+        setShowViewSpecies(false);    // Reset to not show the view list initially
+        setSelectedProject('');     // Reset the project selection
     };
     
+    const fetchSpeciesForProjectAndCritter = async () => {
+        const projectCritterSetName = `${selectedProject}${selectedCritter}Species`; // e.g., GatewayLizardSpecies
 
-    const addSiteToDatabase = async (siteName) => {
         try {
-            const docRef = collection(db, 'Sites'); // Ensure 'Sites' is the correct collection name
-            await addDoc(docRef, { name: siteName });
-            setRefreshSites(true); // Trigger dropdown refresh
-            console.log(`Site ${siteName} added successfully.`);
+            const q = query(collection(db, 'AnswerSet'), where('set_name', '==', projectCritterSetName));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                const docSnapshot = querySnapshot.docs[0];
+                const data = docSnapshot.data();
+                const speciesList = data.answers.map(answer => answer.primary); // Assuming each answer entry has a `primary` field for species name
+
+                setSpeciesOptions(speciesList); // Set fetched species list
+                console.log(`Fetched species for ${projectCritterSetName}:`, speciesList);
+            } else {
+                console.error(`Document with set_name ${projectCritterSetName} does not exist.`);
+                setSpeciesOptions([]); // Clear if no document found
+            }
         } catch (error) {
-            console.error('Error adding site:', error);
-            alert('Failed to add the site.');
+            console.error(`Error fetching species for ${projectCritterSetName}:`, error);
         }
     };
 
@@ -372,6 +406,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
             console.error(`Error fetching sites for project ${projectName}:`, error);
         }
     };
+
     
 
     const handleProjectSelection = (projectName) => {
@@ -424,6 +459,35 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         }
     };
     
+    const addNewSpecies = async () => {
+        if (selectedProject && selectedCritter && newSpeciesName.trim()) {
+            const projectCritterSetName = `${selectedProject}${selectedCritter}Species`;
+
+            try {
+                const q = query(collection(db, 'AnswerSet'), where('set_name', '==', projectCritterSetName));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    const docSnapshot = querySnapshot.docs[0];
+                    const docRef = doc(db, 'AnswerSet', docSnapshot.id);
+
+                    await updateDoc(docRef, {
+                        answers: [...docSnapshot.data().answers, { primary: newSpeciesName }]
+                    });
+
+                    console.log(`Species "${newSpeciesName}" added to ${projectCritterSetName} successfully.`);
+                    setNewSpeciesName('');
+                    fetchSpeciesForProjectAndCritter(); // Refresh species list
+                } else {
+                    console.error(`Document with set_name ${projectCritterSetName} does not exist.`);
+                }
+            } catch (error) {
+                console.error(`Error adding new species to ${projectCritterSetName}:`, error);
+            }
+        } else {
+            alert("Please select a project, critter, and enter a species name.");
+        }
+    };
     
     const addSiteToProjectDocument = async (project, siteName) => {
         const projectDocument = `${project}Sites`;
@@ -676,7 +740,119 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     </div>
 )}
 
+{/* Add Species Modal */}
+{showAddSpeciesModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                        <h2 className="text-xl font-bold mb-4">Species Options</h2>
 
+                        {/* Project Selection Dropdown */}
+                        <label className="block mb-2 font-medium">Select Project:</label>
+                        <select
+                            value={selectedProject}
+                            onChange={(e) => handleProjectSelection(e.target.value)}
+                            className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                        >
+                            <option value="">Select a Project</option>
+                            <option value="Gateway">Gateway</option>
+                            <option value="San Pedro">San Pedro</option>
+                            <option value="Virgin River">Virgin River</option>
+                        </select>
+
+                        {/* Critter Selection Dropdown */}
+                        <label className="block mb-2 font-medium">Select Critter:</label>
+                        <select
+                            value={selectedCritter}
+                            onChange={(e) => handleCritterSelection(e.target.value)}
+                            className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                        >
+                            <option value="">Select a Critter</option>
+                            {critterOptions.map((critter, index) => (
+                                <option key={index} value={critter}>{critter}</option>
+                            ))}
+                        </select>
+
+                        {/* View and Add Buttons */}
+                        {selectedProject && selectedCritter && (
+                            <>
+                                <Button
+                                    onClick={() => {
+                                        setShowViewSpecies(true);
+                                        setShowAddSpeciesForm(false);
+                                        fetchSpeciesForProjectAndCritter();
+                                    }}
+                                    text="View Existing Species"
+                                    className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+                                />
+                                <Button
+                                    onClick={() => {
+                                        setShowAddSpeciesForm(true);
+                                        setShowViewSpecies(false);
+                                    }}
+                                    text="Add New Species"
+                                    className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+                                />
+                            </>
+                        )}
+
+                        <Button
+                            onClick={() => setShowAddSpeciesModal(false)}
+                            text="Close"
+                            className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* View Species Modal */}
+            {showViewSpecies && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                        <h2 className="text-xl font-bold mb-4">Existing Species for {selectedProject} - {selectedCritter}</h2>
+                        <ul className="space-y-2">
+                            {speciesOptions.map((species, index) => (
+                                <li key={index} className="text-black-800">{species}</li>
+                            ))}
+                        </ul>
+                        <Button
+                            onClick={() => setShowViewSpecies(false)}
+                            text="Close"
+                            className="bg-white text-black border border-black px-4 py-2 rounded mt-4"
+                        />
+                    </div>
+                </div>
+            )}
+
+            {/* Add New Species Modal */}
+            {showAddSpeciesForm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                        <h2 className="text-xl font-bold mb-4">Enter New Species</h2>
+                        <input
+                            type="text"
+                            value={newSpeciesName}
+                            onChange={(e) => setNewSpeciesName(e.target.value)}
+                            className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                            placeholder="Enter species name"
+                        />
+                        <div className="flex justify-end space-x-2">
+                            <Button
+                                onClick={() => setShowAddSpeciesForm(false)}
+                                text="Cancel"
+                                className="bg-white-400 text-black px-4 py-2 rounded"
+                            />
+                            <Button
+                                onClick={addNewSpecies}
+                                text="Add Species"
+                                className="bg-white-500 text-black px-4 py-2 rounded"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
+
+    
