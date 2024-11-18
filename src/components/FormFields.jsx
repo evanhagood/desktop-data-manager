@@ -563,7 +563,7 @@ const RegenTailField = ({ regenTail, setRegenTail, layout, disabled }) => {
     );
 }
 
-export const checkToeCodeValidity = async (toeCode, environment, project, site, array, speciesCode, recapture) => {
+export const checkToeCodeValidity = async (toeCode, environment, project, site, speciesCode, recapture) => {
     if (toeCode === undefined) toeCode = ''
     if (toeCode.length < 2) {
         notify(Type.error, 'Toe Clip Code needs to be at least 2 characters long');
@@ -580,7 +580,6 @@ export const checkToeCodeValidity = async (toeCode, environment, project, site, 
             collection(db, collectionName),
             where('toeClipCode', '==', toeCode),
             where('site', '==', site),
-            where('array', '==', array),
             where('speciesCode', '==', speciesCode)
         ));
         if (recapture === 'true') {
@@ -609,7 +608,7 @@ export const checkToeCodeValidity = async (toeCode, environment, project, site, 
 
 
 const ToeClipCodeField = ({
-                              toeCode, setToeCode, project, site, array, speciesCode, recapture
+                              toeCode, setToeCode, project, site, speciesCode, recapture
                           }) => {
     const environment = useAtomValue(appMode);
     const [buttonText, setButtonText] = useState('Generate');
@@ -640,10 +639,9 @@ const ToeClipCodeField = ({
         const lizardSnapshot = await getDocs(query(
             collection(db, collectionName),
             where('site', '==', site),
-            where('array', '==', array),
             where('speciesCode', '==', speciesCode)
         ));
-        console.log(`${collectionName} from site ${site} and array ${array} with species code ${speciesCode}`);
+        console.log(`${collectionName} from site ${site} with species code ${speciesCode}`);
         const toeCodesArray = [];
         lizardSnapshot.docs.forEach(document => {
             toeCodesArray.push(document.data().toeClipCode);
@@ -675,7 +673,6 @@ const ToeClipCodeField = ({
             lizardDataRef,
             where('toeClipCode', '==', toeCode),
             where('site', '==', site),
-            where('array', '==', array),
             where('speciesCode', '==', speciesCode)
         );
         const lizardEntriesSnapshot = await getDocs(q);
