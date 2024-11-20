@@ -20,7 +20,6 @@ export default function LoginPage({ auth, onLogin }) {
                 <p className="text-center mb-5">
                     {auth.loading ? LOADING_MESSAGE : LOGIN_MESSAGE}
                 </p>
-                <h2 className="text-center mb-5">Please Log In with ASURITE ID</h2>
 
                 {/* Google Login Button */}
                 <Button
