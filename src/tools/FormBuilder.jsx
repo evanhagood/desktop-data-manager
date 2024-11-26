@@ -863,13 +863,13 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                             <option value="Virgin River">Virgin River</option>
                         </select>
 
-                        <label className="block mb-2 font-medium">Select Critter:</label>
+                        <label className="block mb-2 font-medium">Select Taxa:</label>
                         <select
                             value={selectedCritter}
                             onChange={(e) => handleCritterSelection(e.target.value)}
                             className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
                         >
-                            <option value="">Select a Critter</option>
+                            <option value="">Select a Taxa</option>
                             <option value="Lizard">Lizard</option>
                             <option value="Mammal">Mammal</option>
                             <option value="Snake">Snake</option>
@@ -905,7 +905,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                             value={newPrimary}
                             onChange={(e) => setNewPrimary(e.target.value)}
                             className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
-                            placeholder="Primary"
+                            placeholder="4-letter code"
                         />
                         <input
                             type="text"
