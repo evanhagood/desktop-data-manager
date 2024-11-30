@@ -655,17 +655,21 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                     <div className="p-6 bg-white dark:bg-neutral-900 rounded-lg overflow-y-auto" style={{ maxHeight: '300px' }}>
                         <h2 className="text-xl font-bold mb-4">Modify Document</h2>
                         <ul className="space-y-2">
-                            {documents.map((doc, index) => (
-                                <Button
-                                    key={index}
-                                    onClick={() => handleDocumentClick(doc)}
-                                    text={doc.set_name || `Document ${index + 1}`}
-                                    className="bg-white text-black dark:bg-neutral-700 dark:text-white border border-black px-4 py-2 rounded hover:bg-neutral-400 dark:hover:bg-gray-800 w-full"
-                                />
-                            ))}
+                            {documents
+                                .slice() // Make a copy to avoid mutating the original array
+                                .sort((a, b) => (a.set_name || "").localeCompare(b.set_name || "")) // Sort alphabetically by set_name
+                                .map((doc, index) => (
+                                    <Button
+                                        key={index}
+                                        onClick={() => handleDocumentClick(doc)}
+                                        text={doc.set_name || `Document ${index + 1}`}
+                                        className="bg-white text-black dark:bg-neutral-700 dark:text-white border border-black px-4 py-2 rounded hover:bg-neutral-400 dark:hover:bg-gray-800 w-full"
+                                    />
+                                ))}
                         </ul>
                     </div>
                 );
+                
             default:
                 return null;
         }
