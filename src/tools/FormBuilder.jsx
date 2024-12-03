@@ -49,6 +49,15 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const [newPrimary, setNewPrimary] = useState('');
     const [newGenus, setNewGenus] = useState('');
     const [newSpecies, setNewSpecies] = useState('');
+    const [showAddArrayModal, setShowAddArrayModal] = useState(false); 
+    const [newArrayName, setNewArrayName] = useState('');
+    const [primaryValues, setPrimaryValues] = useState([]); 
+    const [newPrimaryValue, setNewPrimaryValue] = useState(''); 
+    const [successMessage, setSuccessMessage] = useState('');
+    const [messageBox, setMessageBox] = useState({ show: false, text: '' });
+
+
+
 
     const critterOptions = ["Lizard", "Mammal", "Snake", "Amphibian", "Turtle"];
 
@@ -137,30 +146,30 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         setDeleteMode(''); // Reset the delete mode
     };
     
-    
     const confirmDeleteArray = async () => {
         if (selectedArray) {
             const { docId, name } = selectedArray;
-
+    
             try {
                 const docRef = doc(db, 'AnswerSet', docId);
                 await deleteDoc(docRef);
-
-                setArrayOptions(prevArrayOptions => 
-                    prevArrayOptions.filter(array => array.docId !== docId)
+    
+                setArrayOptions((prevArrayOptions) =>
+                    prevArrayOptions.filter((array) => array.docId !== docId)
                 );
-
+    
                 setSelectedArray(null);
                 triggerRerender();
-                alert(`Document ${name} deleted successfully.`);
+                setMessageBox({ show: true, text: ` ${name} deleted successfully.` });
             } catch (error) {
                 console.error('Error deleting document:', error);
-                alert('Failed to delete the document.');
+                setMessageBox({ show: true, text: 'Failed to delete the document.' });
             } finally {
                 setShowDeleteConfirm(false);
             }
         }
     };
+    
     
 
 
@@ -243,7 +252,56 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         </div>
     );
 
+    const handleAddArrayClick = () => {
+        setShowAddArrayModal(true);
+    };
+    
 
+    const handleAddPrimaryValue = () => {
+        if (newPrimaryValue.trim() !== '') {
+            setPrimaryValues([...primaryValues, newPrimaryValue.trim()]);
+            setNewPrimaryValue('');
+        }
+    };
+    
+    const handleAddSecondaryKeyArray = () => {
+        if (newSecondaryKey.trim() !== '') {
+            setSecondaryKeys([...secondaryKeys, newSecondaryKey.trim()]);
+            setNewSecondaryKey('');
+        }
+    };
+
+    const handleSubmitNewArray = async () => {
+        if (newArrayName.trim() === '' || primaryValues.length === 0) {
+            setMessageBox({ show: true, text: 'Please provide an array name and at least one primary value.' });
+            return;
+        }
+    
+        try {
+            // Join secondary keys into a single string separated by commas
+            const secondaryKeysString = secondaryKeys.join(', ');
+    
+            await addDoc(collection(db, 'AnswerSet'), {
+                set_name: newArrayName,
+                answers: primaryValues.map((value) => ({ primary: value })),
+                secondary_keys: secondaryKeysString, // Store as a string
+                date_modified: Date.now(), // Include date_modified
+            });
+    
+            setMessageBox({ show: true, text: 'Array added successfully.' });
+            setNewArrayName('');
+            setPrimaryValues([]);
+            setSecondaryKeys([]);
+            setShowAddArrayModal(false);
+            triggerRerender(); // Refresh the UI
+        } catch (error) {
+            console.error('Error adding new array:', error);
+            setMessageBox({ show: true, text: 'Failed to add the array.' });
+        }
+    };    
+    
+    
+    
 
 
     const confirmDeletePrimaryField = async () => {
@@ -612,6 +670,11 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                             className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mb-4 w-full"
                         />
                         <Button
+                            onClick={handleAddArrayClick}
+                            text="Add Array"
+                            className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mb-4 w-full"
+                        />
+                        <Button
                             onClick={handleDeleteArrayClick}
                             text="Delete Array"
                             className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mb-4 w-full"
@@ -942,6 +1005,89 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                     </div>
                 </div>
             )}
+
+{showAddArrayModal && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="bg-white dark:bg-neutral-900 p-6 rounded-lg shadow-lg w-80">
+            <h2 className="text-xl font-bold mb-4">Add New Array</h2>
+            <label className="block mb-2 font-medium">Array Name:</label>
+            <input
+                type="text"
+                value={newArrayName}
+                onChange={(e) => setNewArrayName(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                placeholder="Enter array name"
+            />
+
+            <label className="block mb-2 font-medium">Primary Values:</label>
+            {primaryValues.map((value, index) => (
+                <p key={index} className="ml-2 mb-2 text-gray-700">- {value}</p>
+            ))}
+            <input
+                type="text"
+                value={newPrimaryValue}
+                onChange={(e) => setNewPrimaryValue(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                placeholder="Enter primary value"
+            />
+            <Button 
+                onClick={handleAddPrimaryValue} 
+                text="Add Primary Value" 
+                className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mb-2 w-full" 
+            />
+
+            <label className="block mb-2 font-medium">Secondary Keys:</label>
+             {secondaryKeys.map((key, index) => (
+            <p key={index} className="ml-2 mb-2 text-gray-700">- {key}</p>
+            ))}
+            <input
+                type="text"
+                value={newSecondaryKey}
+                onChange={(e) => setNewSecondaryKey(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                placeholder="Enter secondary key"
+           />
+            <Button 
+                onClick={handleAddSecondaryKey} 
+                text="Add Secondary Key" 
+                className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mb-2 w-full" 
+            />
+
+
+            <div className="flex justify-end space-x-2">
+                <Button 
+                    onClick={() => setShowAddArrayModal(false)} 
+                    text="Cancel" 
+                    className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center" 
+                />
+                <Button 
+                    onClick={handleSubmitNewArray} 
+                    text="Add Array" 
+                    className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center" 
+                />
+            </div>
+        </div>
+    </div>
+)}
+{successMessage && (
+    <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-md">
+        {successMessage}
+    </div>
+)}
+{messageBox.show && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-neutral-900 p-6 rounded-lg shadow-lg text-center">
+            <p className="text-lg font-medium text-gray-900 dark:text-white mb-4">{messageBox.text}</p>
+            <button
+                onClick={() => setMessageBox({ show: false, text: '' })}
+                className="bg-asu-maroon text-white px-4 py-2 border border-white rounded hover:bg-maroon-700"
+            >
+                OK
+            </button>
+        </div>
+    </div>
+)}
+
 
         </div>
     );
