@@ -49,6 +49,15 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
     const [newPrimary, setNewPrimary] = useState('');
     const [newGenus, setNewGenus] = useState('');
     const [newSpecies, setNewSpecies] = useState('');
+    const [showAddArrayModal, setShowAddArrayModal] = useState(false); 
+    const [newArrayName, setNewArrayName] = useState('');
+    const [primaryValues, setPrimaryValues] = useState([]); 
+    const [newPrimaryValue, setNewPrimaryValue] = useState(''); 
+    const [successMessage, setSuccessMessage] = useState('');
+    const [messageBox, setMessageBox] = useState({ show: false, text: '' });
+
+
+
 
     const critterOptions = ["Lizard", "Mammal", "Snake", "Amphibian", "Turtle"];
 
@@ -137,50 +146,50 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         setDeleteMode(''); // Reset the delete mode
     };
     
-    
     const confirmDeleteArray = async () => {
         if (selectedArray) {
             const { docId, name } = selectedArray;
-
+    
             try {
                 const docRef = doc(db, 'AnswerSet', docId);
                 await deleteDoc(docRef);
-
-                setArrayOptions(prevArrayOptions => 
-                    prevArrayOptions.filter(array => array.docId !== docId)
+    
+                setArrayOptions((prevArrayOptions) =>
+                    prevArrayOptions.filter((array) => array.docId !== docId)
                 );
-
+    
                 setSelectedArray(null);
                 triggerRerender();
-                alert(`Document ${name} deleted successfully.`);
+                setMessageBox({ show: true, text: ` ${name} deleted successfully.` });
             } catch (error) {
                 console.error('Error deleting document:', error);
-                alert('Failed to delete the document.');
+                setMessageBox({ show: true, text: 'Failed to delete the document.' });
             } finally {
                 setShowDeleteConfirm(false);
             }
         }
     };
     
+    
 
 
     const renderDeleteArrayModal = () => (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+            <div className="bg-white dark:bg-neutral-900 dark:text-white p-6 rounded-lg shadow-lg w-80">
                 <h2 className="text-xl font-bold mb-4">Delete Options</h2>
-                <p className="text-gray-600 mb-4 text-center">
+                <p className="text-sm text-gray-600 dark:text-neutral-400 mb-4 text-center">
                         Delete entire array will allow you to delete the array document in its entirety and delete array field will let you delete a primary field from your array of choice.
                     </p>
                 <div className="flex flex-col mb-4">
                     <Button 
                         onClick={() => setDeleteMode('array')}
                         text="Delete Entire Array"
-                        className="bg-white text-black border border-black px-4 py-2 w-full"
+                        className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center w-full mb-2"
                     />
                     <Button 
                         onClick={() => setDeleteMode('field')}
                         text="Delete Array Field"
-                        className="bg-white text-black border border-black px-4 py-2 w-full mt-2"
+                        className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center w-full"
                     />
                 </div>
 
@@ -231,7 +240,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                             disabled={!selectedArray}
                         />
                     ) : (
-                        <Button
+                        <Button 
                             onClick={confirmDeletePrimaryField}
                             text="Delete Field"
                             className="bg-red text-white px-6 py-3 rounded w-full"
@@ -243,7 +252,56 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         </div>
     );
 
+    const handleAddArrayClick = () => {
+        setShowAddArrayModal(true);
+    };
+    
 
+    const handleAddPrimaryValue = () => {
+        if (newPrimaryValue.trim() !== '') {
+            setPrimaryValues([...primaryValues, newPrimaryValue.trim()]);
+            setNewPrimaryValue('');
+        }
+    };
+    
+    const handleAddSecondaryKeyArray = () => {
+        if (newSecondaryKey.trim() !== '') {
+            setSecondaryKeys([...secondaryKeys, newSecondaryKey.trim()]);
+            setNewSecondaryKey('');
+        }
+    };
+
+    const handleSubmitNewArray = async () => {
+        if (newArrayName.trim() === '' || primaryValues.length === 0) {
+            setMessageBox({ show: true, text: 'Please provide an array name and at least one primary value.' });
+            return;
+        }
+    
+        try {
+            // Join secondary keys into a single string separated by commas
+            const secondaryKeysString = secondaryKeys.join(', ');
+    
+            await addDoc(collection(db, 'AnswerSet'), {
+                set_name: newArrayName,
+                answers: primaryValues.map((value) => ({ primary: value })),
+                secondary_keys: secondaryKeysString, // Store as a string
+                date_modified: Date.now(), // Include date_modified
+            });
+    
+            setMessageBox({ show: true, text: 'Array added successfully.' });
+            setNewArrayName('');
+            setPrimaryValues([]);
+            setSecondaryKeys([]);
+            setShowAddArrayModal(false);
+            triggerRerender(); // Refresh the UI
+        } catch (error) {
+            console.error('Error adding new array:', error);
+            setMessageBox({ show: true, text: 'Failed to add the array.' });
+        }
+    };    
+    
+    
+    
 
 
     const confirmDeletePrimaryField = async () => {
@@ -603,76 +661,87 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
         switch (modalStep) {
             case 1:
                 return (
-                    <div className="p-6 bg-white rounded-lg flex flex-col items-center">
+                    <div className="p-6 bg-white dark:bg-neutral-900 rounded-lg flex flex-col items-center">
+                                                                                                                                      
                         <h2 className="text-xl font-bold mb-4">Collection</h2>
                         <Button
                             onClick={() => setModalStep(2)}
                             text="AnswerSet"
-                            className="bg-white text-black border border-black px-4 py-2 rounded mb-2 w-full"
+                            className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mb-4 w-full"
+                        />
+                        <Button
+                            onClick={handleAddArrayClick}
+                            text="Add Array"
+                            className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mb-4 w-full"
                         />
                         <Button
                             onClick={handleDeleteArrayClick}
                             text="Delete Array"
-                            className="bg-white text-black border border-black px-4 py-2 rounded mb-2 w-full"
+                            className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mb-4 w-full"
                         />
                         <Button
                            onClick={handleAddSite}
                            text="Add Site"
-                           className="bg-white text-black border border-black px-4 py-2 rounded mb-2 w-full"
+                           className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mb-4 w-full"
                         />
                         <Button
                            onClick={handleAddSpecies}
                            text="Add Species"
-                           className="bg-white text-black border border-black px-4 py-2 rounded mb-2 w-full"
+                           className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center w-full"
                         />
                        
                     </div>
                 );
             case 2:
                 return (
-                    <div className="p-6 bg-white rounded-lg flex flex-col items-center">
+                    <div className="p-6 bg-white dark:bg-neutral-900 rounded-lg flex flex-col items-center">
                         <h2 className="text-xl font-bold mb-4">Document Options</h2>
-                        <p className="text-gray-600 mb-4 text-center">
+                        <p className="text-grey-600 dark:text-neutral-400 mb-4 text-center">
                         Please select one of the options below to modify or create a new document. Use the "Modify Existing Document" option to edit, or the "Create New Document" option to start a new document.
                         </p>
                         <div className="flex flex-col gap-4 w-full max-w-xs">
                             <Button 
                                 onClick={() => setModalStep(3)} 
                                 text="Modify Existing Document" 
-                                className="bg-white text-black border border-black px-6 py-3 rounded w-full" 
+                                className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center px-6 py-3 rounded w-full"
                             />
                             <Button 
                                 onClick={() => setShowNewDocumentModal(true)} 
                                 text="Create New Document" 
-                                className="bg-white text-black border border-black px-6 py-3 rounded w-full" 
+                                className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center px-6 py-3 rounded w-full"
                             />
                         </div>
                     </div>
                 );
             case 3:
                 return (
-                    <div className="p-6 bg-white rounded-lg overflow-y-auto" style={{ maxHeight: '300px' }}>
+                    <div className="p-6 bg-white dark:bg-neutral-900 rounded-lg overflow-y-auto" style={{ maxHeight: '300px' }}>
                         <h2 className="text-xl font-bold mb-4">Modify Document</h2>
                         <ul className="space-y-2">
-                            {documents.map((doc, index) => (
-                                <Button
-                                    key={index}
-                                    onClick={() => handleDocumentClick(doc)}
-                                    text={doc.set_name || `Document ${index + 1}`}
-                                    className="bg-white text-black border border-black px-4 py-2 rounded hover:bg-gray-300 w-full"
-                                />
-                            ))}
+                            {documents
+                                .slice() // Make a copy to avoid mutating the original array
+                                .sort((a, b) => (a.set_name || "").localeCompare(b.set_name || "")) // Sort alphabetically by set_name
+                                .map((doc, index) => (
+                                    <Button
+                                        key={index}
+                                        onClick={() => handleDocumentClick(doc)}
+                                        text={doc.set_name || `Document ${index + 1}`}
+                                        className="bg-white text-black dark:bg-neutral-700 dark:text-white border border-black px-4 py-2 rounded hover:bg-neutral-400 dark:hover:bg-gray-800 w-full"
+                                    />
+                                ))}
                         </ul>
                     </div>
                 );
+                
             default:
                 return null;
         }
     };
 
     return (
-        <div className="flex justify-center items-center bg-white-100 overflow-hidden">
-           <div className="w-[600px] max-h-[400px] bg-white rounded-lg shadow-lg p-4 overflow-hidden">
+        <div className="flex justify-center items-center bg-white dark:bg-neutral-900 overflow-hidden">
+    <div className="w-[600px] max-h-[400px] bg-white dark:bg-neutral-900 rounded-lg shadow-lg p-4 overflow-hidden">
+
             {renderModalContent()}
         </div>
 
@@ -680,7 +749,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
             {/* Add Site Options Modal */}
             {showAddSiteModal && (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+        <div className="bg-white dark:bg-neutral-900 p-6 rounded-lg shadow-lg w-80">
             <h2 className="text-xl font-bold mb-4">Site Options</h2>
              {/* Project Selection Dropdown */}
              <label className="block mb-2 font-medium">Select Project:</label>
@@ -705,7 +774,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                                         fetchSitesForProject(selectedProject);
                                     }}
                                     text="View Existing Sites"
-                                    className="bg-white text-black border border-black px-4 py-2 rounded mb-2 w-full"
+                                    className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center w-full mb-2"
                                 />
                                 <Button
                                     onClick={() => {
@@ -713,7 +782,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                                         setShowViewSites(false);
                                     }}
                                     text="Add New Site"
-                                    className="bg-white text-black border border-black px-4 py-2 rounded mb-2 w-full"
+                                    className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center w-full mb-4"
                                 />
                             </>
                         )}
@@ -721,7 +790,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
             <Button
                 onClick={() => setShowAddSiteModal(false)}
                 text="Close"
-                className="bg-red text-white px-4 py-2 rounded mb-2"
+                className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center "
             />
         </div>
     </div>
@@ -729,13 +798,13 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
             {/* View Sites Modal */}
             {showViewSites && (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+        <div className="bg-white dark:bg-neutral-900 p-6 rounded-lg shadow-lg w-80">
             <h2 className="text-xl font-bold mb-4">Existing Sites for {selectedProject}</h2>
             {renderExistingSites()}
             <Button
                 onClick={() => setShowViewSites(false)}
                 text="Close"
-                className="bg-white text-black border border-black px-4 py-2 rounded mt-4"
+                className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mt-4"
             />
         </div>
     </div>
@@ -744,7 +813,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
             {/* New Document Modal */}
             {showNewDocumentModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                    <div className="bg-white dark:bg-neutral-900 p-6 rounded-lg shadow-lg w-80">
                         <h2 className="text-xl font-bold mb-4">Create New Document</h2>
                         <label className="block mb-2 font-medium">Answer Set Name:</label>
                         <input
@@ -768,24 +837,24 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                         <Button 
                             onClick={handleAddSecondaryKey} 
                             text="Add Secondary Key" 
-                            className="bg-white text-black border border-black px-4 py-2 rounded w-full mb-4" 
+                            className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mb-2 w-full" 
                         />
                         <Button 
                             onClick={handleSubmitNewDocument} 
                             text="Submit" 
-                            className="bg-white text-black border border-black px-4 py-2 rounded w-full mb-2" 
+                            className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mb-2 w-full" 
                         />
                         <Button 
                             onClick={() => setShowNewDocumentModal(false)} 
                             text="Cancel" 
-                            className="bg-white text-black border brder-black px-4 py-2 rounded w-full" 
+                            className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center w-full" 
                         />
                     </div>
                 </div>
             )}
             {editModalVisible && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                    <div className="bg-white dark:bg-neutral-900 p-6 rounded-lg shadow-lg w-80">
                         <h2 className="text-xl font-bold mb-4">Data</h2>
                         <select
                             className="mb-4 p-2 border rounded w-full"
@@ -802,8 +871,8 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                         <h3 className="text-lg font-bold mb-2">Edit Data</h3>
                         {renderEditDataFields()}
                         <div className="flex justify-end mt-4 space-x-2">
-                            <Button onClick={() => setEditModalVisible(false)} text="Cancel" className="bg-gray-400 text-white px-4 py-2 rounded" />
-                            <Button onClick={submitChanges} text="Save" className="bg-white-500 text-black px-4 py-2 rounded" />
+                            <Button onClick={() => setEditModalVisible(false)} text="Cancel" className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center" />
+                            <Button onClick={submitChanges} text="Save" className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center" />
                         </div>
                     </div>
                 </div>
@@ -812,7 +881,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
 
             {showAddSiteForm && (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+        <div className="bg-white dark:bg-neutral-900 p-6 rounded-lg shadow-lg w-80">
             <h2 className="text-xl font-bold mb-4">Enter New Site</h2>
             <input
                 type="text"
@@ -825,7 +894,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                 <Button
                     onClick={() => setShowAddSiteForm(false)}
                     text="Cancel"
-                    className="bg-white-400 text-black px-4 py-2 rounded"
+                    className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center"
                 />
                 <Button
                     onClick={async () => {
@@ -839,7 +908,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                         }
                     }}
                     text="Add Site"
-                    className="bg-white-500 text-black px-4 py-2 rounded"
+                    className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center"
                 />
             </div>
         </div>
@@ -849,7 +918,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
 {/* Add Species Modal */}
 {showAddSpeciesModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                    <div className="bg-white dark:bg-neutral-900 p-6 rounded-lg shadow-lg w-80">
                         <h2 className="text-xl font-bold mb-4">Species Options</h2>
                         <label className="block mb-2 font-medium">Select Project:</label>
                         <select
@@ -863,13 +932,13 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                             <option value="Virgin River">Virgin River</option>
                         </select>
 
-                        <label className="block mb-2 font-medium">Select Critter:</label>
+                        <label className="block mb-2 font-medium">Select Taxa:</label>
                         <select
                             value={selectedCritter}
                             onChange={(e) => handleCritterSelection(e.target.value)}
                             className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
                         >
-                            <option value="">Select a Critter</option>
+                            <option value="">Select a Taxa</option>
                             <option value="Lizard">Lizard</option>
                             <option value="Mammal">Mammal</option>
                             <option value="Snake">Snake</option>
@@ -882,7 +951,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                                 <Button
                                     onClick={() => setShowAddSpeciesForm(true)}
                                     text="Add New Species"
-                                    className="bg-white text-black border border-black px-4 py-2 rounded mb-2"
+                                    className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mb-2"
                                 />
                             </>
                         )}
@@ -890,7 +959,7 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                         <Button
                             onClick={() => setShowAddSpeciesModal(false)}
                             text="Close"
-                            className="bg-red text-white px-4 py-2 rounded mb-2"
+                            className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center"
                         />
                     </div>
                 </div>
@@ -898,14 +967,14 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
 
             {showAddSpeciesForm && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+                    <div className="bg-white dark:bg-neutral-900 p-6 rounded-lg shadow-lg w-80">
                         <h2 className="text-xl font-bold mb-4">Enter New Species</h2>
                         <input
                             type="text"
                             value={newPrimary}
                             onChange={(e) => setNewPrimary(e.target.value)}
                             className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
-                            placeholder="Primary"
+                            placeholder="4-letter code"
                         />
                         <input
                             type="text"
@@ -925,17 +994,100 @@ export default function FormBuilder({ triggerRerender, modalStep, setModalStep }
                             <Button
                                 onClick={() => setShowAddSpeciesForm(false)}
                                 text="Cancel"
-                                className="bg-red text-white px-4 py-2 rounded"
+                                className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center"
                             />
                             <Button
                                 onClick={addNewSpecies}
                                 text="Add Species"
-                                className="bg-red text-white px-4 py-2 rounded"
+                                className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center"
                             />
                         </div>
                     </div>
                 </div>
             )}
+
+{showAddArrayModal && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="bg-white dark:bg-neutral-900 p-6 rounded-lg shadow-lg w-80">
+            <h2 className="text-xl font-bold mb-4">Add New Array</h2>
+            <label className="block mb-2 font-medium">Array Name:</label>
+            <input
+                type="text"
+                value={newArrayName}
+                onChange={(e) => setNewArrayName(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                placeholder="Enter array name"
+            />
+
+            <label className="block mb-2 font-medium">Primary Values:</label>
+            {primaryValues.map((value, index) => (
+                <p key={index} className="ml-2 mb-2 text-gray-700">- {value}</p>
+            ))}
+            <input
+                type="text"
+                value={newPrimaryValue}
+                onChange={(e) => setNewPrimaryValue(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                placeholder="Enter primary value"
+            />
+            <Button 
+                onClick={handleAddPrimaryValue} 
+                text="Add Primary Value" 
+                className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mb-2 w-full" 
+            />
+
+            <label className="block mb-2 font-medium">Secondary Keys:</label>
+             {secondaryKeys.map((key, index) => (
+            <p key={index} className="ml-2 mb-2 text-gray-700">- {key}</p>
+            ))}
+            <input
+                type="text"
+                value={newSecondaryKey}
+                onChange={(e) => setNewSecondaryKey(e.target.value)}
+                className="border border-gray-300 rounded px-3 py-2 mb-4 w-full"
+                placeholder="Enter secondary key"
+           />
+            <Button 
+                onClick={handleAddSecondaryKey} 
+                text="Add Secondary Key" 
+                className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center mb-2 w-full" 
+            />
+
+
+            <div className="flex justify-end space-x-2">
+                <Button 
+                    onClick={() => setShowAddArrayModal(false)} 
+                    text="Cancel" 
+                    className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center" 
+                />
+                <Button 
+                    onClick={handleSubmitNewArray} 
+                    text="Add Array" 
+                    className="flex rounded-md p-1.5 text-white whitespace-nowrap bg-asu-maroon border-2 border-transparent items-center" 
+                />
+            </div>
+        </div>
+    </div>
+)}
+{successMessage && (
+    <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-md">
+        {successMessage}
+    </div>
+)}
+{messageBox.show && (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-neutral-900 p-6 rounded-lg shadow-lg text-center">
+            <p className="text-lg font-medium text-gray-900 dark:text-white mb-4">{messageBox.text}</p>
+            <button
+                onClick={() => setMessageBox({ show: false, text: '' })}
+                className="bg-asu-maroon text-white px-4 py-2 border border-white rounded hover:bg-maroon-700"
+            >
+                OK
+            </button>
+        </div>
+    </div>
+)}
+
 
         </div>
     );
