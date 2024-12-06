@@ -1,12 +1,13 @@
 import classNames from 'classnames';
 import { SortAscIcon, SortDescIcon } from '../assets/icons';
+import '../styles/Table.css';
 import React from 'react';
 
 export const TableHeading = ({ label, active, sortDirection, onClick }) => {
 
     const getSortIcon = () => {
         if (active && sortDirection) {
-            return sortDirection  === 'asc' ? <SortAscIcon /> : <SortDescIcon />;
+            return sortDirection === 'asc' ? <SortAscIcon /> : <SortDescIcon />;
         }
     };
 
@@ -17,7 +18,7 @@ export const TableHeading = ({ label, active, sortDirection, onClick }) => {
 
     return (
         <th className={thClasses} onClick={onClick}>
-           <div className="flex items-center justify-start pl-2">
+            <div className="flex items-center justify-start pl-2">
                 <span className="flex-1 mr-1 whitespace-nowrap">{label}</span>
                 <span className="flex-4 text-xl ml-1">{getSortIcon()}</span>
             </div>
