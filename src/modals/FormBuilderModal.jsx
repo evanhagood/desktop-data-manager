@@ -27,7 +27,8 @@ export default function FormBuilderModal({ showModal, onCancel, onOkay, triggerR
                 okay: '',
             }}
         >
-            <div className="w-[600px] h-[400px] p-4 bg-white rounded-lg shadow-lg flex items-center justify-center">
+            <div className="w-[600px] h-[400px] p-4 bg-white dark:bg-neutral-900 rounded-lg shadow-lg flex items-center justify-center">
+
                 {/* Ensure inner FormBuilder also respects square shape */}
                 <FormBuilder
                     triggerRerender={triggerRerender}
