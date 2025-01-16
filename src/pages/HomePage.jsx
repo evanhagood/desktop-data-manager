@@ -49,6 +49,7 @@ const MainContent = ({ setCurrentPage }) => (
                 The Field Day Web UI is a powerful desktop application designed to manage wildlife data collected through the Field Day mobile app. It serves as an essential tool for researchers, allowing them to efficiently view, manage, and export data collected in the field.
             </p>
             <Button text='Enter WebUI' onClick={() => setCurrentPage('Table')} />
+            <Button text='View User Guide' onClick={() => setCurrentPage('UserGuide')}></Button>
             <SectionTitle title="Resources" />
             <ResourceLinks />
         </div>

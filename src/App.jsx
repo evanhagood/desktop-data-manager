@@ -5,6 +5,7 @@ import { Authenticator } from './utils/authenticator';
 import HomePage from './pages/HomePage';
 import TablePage from './pages/TablePage';
 import LoginPage from './pages/LoginPage';
+import UserGuide from './pages/UserGuide';
 import TopNav from './components/TopNav';
 import { Notifier } from './components/Notifier';
 
@@ -30,6 +31,7 @@ function App() {
     const pageMap = {
         Home: <HomePage />,
         Table: <TablePage />,
+        UserGuide: <UserGuide />
     };
 
     return (
