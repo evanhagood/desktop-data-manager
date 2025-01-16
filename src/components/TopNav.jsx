@@ -5,6 +5,7 @@ import { useAtom } from 'jotai';
 import { currentPageName } from '../utils/jotai';
 import EnvironmentSelector from './EnvironmentSelector';
 import React from 'react';
+import Button from './Button.jsx';
 
 /**
  *
@@ -13,7 +14,7 @@ import React from 'react';
  * @returns
  */
 export default function TopNav({ title, auth }) {
-    const [currentPage, setCurrentPage] = useAtom(currentPageName)
+    const [currentPage, setCurrentPage] = useAtom(currentPageName);
 
     return (
         <div className="px-5 bg-neutral-800 dark:bg-neutral-900 text-neutral-100 w-full shadow-md max-h-16">
@@ -26,13 +27,13 @@ export default function TopNav({ title, auth }) {
                         <p className="text-lg font-bold">{title}</p>
                     </li>
                 </ul>
-                <UserController key="userController" user={auth.user} auth={auth} />
+                <UserController key="userController" user={auth.user} auth={auth} setCurrentPage={setCurrentPage}/>
             </nav>
         </div>
     );
 }
 
-function UserController({ user, auth }) {
+function UserController({ user, auth, setCurrentPage }) {
     return (
         user
         &&
@@ -40,6 +41,7 @@ function UserController({ user, auth }) {
             <div key="email">{user.email}</div>
             <UserImage key="profilePicture" className="h-12" user={user} />
             <LogoutButton key="logoutBtn" auth={auth} />
+            <Button text="User Guide" onClick={() => setCurrentPage('UserGuide')}/>
             <EnvironmentSelector />
         </div>
     );
