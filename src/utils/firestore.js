@@ -18,17 +18,26 @@ import { Type } from '../components/Notifier';
 
 
 export const updateSpeciesField = async () => {
-    // get all collections
-    // iterate
-    // get all documents
-    // iterate
-    // get all data
-    // iterate
-    // if data == stanburiana
-    // update data to stansburiana
-    // post console log
-    // pray it doesnt mess up firebase
-    console.log("updateSpeciesField function called");
+    try {
+        const collections = await db.listCollections(); // Get all collections in Firestore
+
+        for (const collection of collections) {
+            const snapshot = await getDocs(collection(db, collection.id)); // Get all documents in the collection
+
+            for (const doc of snapshot.docs) {
+                const data = doc.data();
+
+                if (data.species === 'stanburiana') {
+                    await updateDoc(doc.ref, { species: 'stansburiana' }); // Update the species field
+                    console.log(`Updated document ${doc.id} in collection ${collection.id}`);
+                }
+            }
+        }
+
+        console.log('Species field update completed.');
+    } catch (error) {
+        console.error('Error updating species field:', error);
+    }
 };
 
 export const getArthropodLabels = async () => {
