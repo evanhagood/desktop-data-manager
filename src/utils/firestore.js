@@ -19,17 +19,19 @@ import { Type } from '../components/Notifier';
 
 export const updateSpeciesField = async () => {
     try {
-        const collections = await db.listCollections(); // Get all collections in Firestore
+        // Define the collection names manually because listCollections only works for admins
+        const collectionNames = ['AnswerSet', 'CollectionMetadata', 'Data', 'DataForm', 'Data_Entry', 'Deleted_Item', 'GatewayData', 'GatewaySession', 'LizardData', 'Metadata', 'Project', 'San PedroData', 'SanPedroData', 'SanPedroSession', 'Session', 'Sites', 'TestGatewayData', 'TestGatewaySession', 'TestSan PedroData', 'TestSanPedroData', 'TestSanPedroSession', 'TestVirgin RiverData', 'TestVirginRiverData', 'TestVirginRiverSession', 'ToeClipCodes', 'User', 'VirginRiverData', 'VirginRiverSession', 'authorized_users', 'loginHistory'];
 
-        for (const collection of collections) {
-            const snapshot = await getDocs(collection(db, collection.id)); // Get all documents in the collection
+        for (const collectionName of collectionNames) {
+            const collectionRef = collection(db, collectionName); // Reference to the collection
+            const snapshot = await getDocs(collectionRef); // Get all documents in the collection
 
             for (const doc of snapshot.docs) {
                 const data = doc.data();
 
                 if (data.species === 'stanburiana') {
                     await updateDoc(doc.ref, { species: 'stansburiana' }); // Update the species field
-                    console.log(`Updated document ${doc.id} in collection ${collection.id}`);
+                    console.log(`Updated document ${doc.id} in collection ${collectionName}`);
                 }
             }
         }
@@ -38,7 +40,7 @@ export const updateSpeciesField = async () => {
     } catch (error) {
         console.error('Error updating species field:', error);
     }
-};
+}
 
 export const getArthropodLabels = async () => {
     const snapshot = await getDocs(
