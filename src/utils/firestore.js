@@ -16,6 +16,21 @@ import {
 import { db } from './firebase';
 import { Type } from '../components/Notifier';
 
+
+export const updateSpeciesField = async () => {
+    // get all collections
+    // iterate
+    // get all documents
+    // iterate
+    // get all data
+    // iterate
+    // if data == stanburiana
+    // update data to stansburiana
+    // post console log
+    // pray it doesnt mess up firebase
+    console.log("updateSpeciesField function called");
+};
+
 export const getArthropodLabels = async () => {
     const snapshot = await getDocs(
         query(collection(db, 'AnswerSet'), where('set_name', '==', 'ArthropodSpecies')),
@@ -23,6 +38,7 @@ export const getArthropodLabels = async () => {
     const answers = snapshot.docs[0]?.data().answers || [];
     return answers.map((ans) => ans.primary).sort((a, b) => a.localeCompare(b));
 };
+
 const deleteDocumentFromFirestore = async (entrySnapshot, deleteMsg) => {
     let response = [];
     try {

@@ -28,6 +28,7 @@ import { usePagination } from '../hooks/usePagination';
 import Button from '../components/Button';
 import { ProjectField } from '../components/FormFields';
 import MergeSessionsModal from '../modals/MergeSessionsModal';
+import { updateSpeciesField } from '../utils/firestore';
 
 export default function TablePage() {
     const [entries, setEntries] = useState([]);
@@ -88,6 +89,7 @@ export default function TablePage() {
                     showModal={activeTool === 'merge'}
                     closeModal={() => setActiveTool('none')}
                 />
+
                 <div className="flex justify-between items-center overflow-auto dark:bg-neutral-700">
                     <TabBar
                         tabs={tabsData.map((tab) => ({
@@ -100,6 +102,14 @@ export default function TablePage() {
                         <ProjectField
                             project={currentProject.replace(/([a-z])([A-Z])/g, '$1 $2')}
                             setProject={(e) => setCurrentProject(e.replace(/ /g, ''))}
+                        />
+                        <Button
+                            text="Stansburiana"
+                            onClick={async () => {
+                                console.log("Stansburiana button clicked");
+                                await updateSpeciesField(); // Call the function when the button is clicked
+                            }}
+                            className="bg-blue-500 hover:bg-blue-600"
                         />
                     </div>
                 </div>
