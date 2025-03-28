@@ -11,6 +11,7 @@ import { FormBuilderIcon, ExportIcon, NewDataIcon, TurtleIcon, LizardIcon, Mamma
 import FormBuilderModal from '../modals/FormBuilderModal';
 import ExportModal from '../modals/ExportModal';
 import DataInputModal from '../modals/DataInputModal';
+import { updateSpeciesField } from '../utils/firestore';
 
 import { usePagination } from '../hooks/usePagination';
 import Button from '../components/Button';
@@ -52,6 +53,11 @@ export default function TablePage() {
         }
         loadBatch()
     }, [tableName, batchSize, currentProject, environment, rerender]);
+
+    const handleSpeciesFieldUpdate = async () => {
+        const result = await updateSpeciesField();
+        alert(result.message);
+    };
 
     const tabsData = [
         { text: 'Turtle', icon: <TurtleIcon /> },
@@ -132,6 +138,11 @@ export default function TablePage() {
                             text="Merge Sessions"
                             icon={<MergeIcon />}
                             onClick={() => setActiveTool('merge')}
+                        />
+                        <Button
+                            flexible={true}
+                            text="Fix Species Names"
+                            onClick={handleSpeciesFieldUpdate}
                         />
                     </TableTools>
                     <Pagination

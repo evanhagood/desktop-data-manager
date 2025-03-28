@@ -293,6 +293,33 @@ export const uploadNewEntry = async (entryData, project, environment) => {
     }
 };
 
+export const updateSpeciesField = async () => {
+    try {
+        // Define the collection names manually because listCollections only works for admins
+        const collectionNames = ['AnswerSet', 'CollectionMetadata', 'Data', 'DataForm', 'Data_Entry', 'Deleted_Item', 'GatewayData', 'GatewaySession', 'LizardData', 'Metadata', 'Project', 'San PedroData', 'SanPedroData', 'SanPedroSession', 'Session', 'Sites', 'TestGatewayData', 'TestGatewaySession', 'TestSan PedroData', 'TestSanPedroData', 'TestSanPedroSession', 'TestVirgin RiverData', 'TestVirginRiverData', 'TestVirginRiverSession', 'ToeClipCodes', 'User', 'VirginRiverData', 'VirginRiverSession', 'authorized_users', 'loginHistory'];
+
+        for (const collectionName of collectionNames) {
+            const collectionRef = collection(db, collectionName); // Reference to the collection
+            const snapshot = await getDocs(collectionRef); // Get all documents in the collection
+
+            for (const doc of snapshot.docs) {
+                const data = doc.data();
+
+                if (data.species === 'stanburiana') {
+                    await updateDoc(doc.ref, { species: 'stansburiana' }); // Update the species field
+                    console.log(`Updated document ${doc.id} in collection ${collectionName}`);
+                }
+            }
+        }
+
+        console.log('Species field update completed.');
+        return { success: true, message: 'Species field update completed successfully' };
+    } catch (error) {
+        console.error('Error updating species field:', error);
+        return { success: false, message: 'Error updating species field: ' + error.message };
+    }
+};
+
 export {
     getDocsFromCollection,
     addDocToCollection,
