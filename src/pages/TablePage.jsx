@@ -11,7 +11,7 @@ import { FormBuilderIcon, ExportIcon, NewDataIcon, TurtleIcon, LizardIcon, Mamma
 import FormBuilderModal from '../modals/FormBuilderModal';
 import ExportModal from '../modals/ExportModal';
 import DataInputModal from '../modals/DataInputModal';
-import { updateSpeciesField } from '../utils/firestore';
+import { addSecondaryTaxaToAnswerSet } from '../utils/firestore';
 
 import { usePagination } from '../hooks/usePagination';
 import Button from '../components/Button';
@@ -54,8 +54,8 @@ export default function TablePage() {
         loadBatch()
     }, [tableName, batchSize, currentProject, environment, rerender]);
 
-    const handleSpeciesFieldUpdate = async () => {
-        const result = await updateSpeciesField();
+    const addSecondaryTaxaToAnswerSetUpdate = async () => {
+        const result = await addSecondaryTaxaToAnswerSet();
         alert(result.message);
     };
 
@@ -141,8 +141,8 @@ export default function TablePage() {
                         />
                         <Button
                             flexible={true}
-                            text="Fix Species Names"
-                            onClick={handleSpeciesFieldUpdate}
+                            text="Add Secondary"
+                            onClick={addSecondaryTaxaToAnswerSetUpdate}
                         />
                     </TableTools>
                     <Pagination

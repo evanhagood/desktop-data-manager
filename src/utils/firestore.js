@@ -320,6 +320,51 @@ export const updateSpeciesField = async () => {
     }
 };
 
+export const addSecondaryTaxaToAnswerSet = async (docId = '9RehZdr6gpdGXmFQ2W0E') => {
+    try {
+        // Get the document reference
+        const docRef = doc(db, 'AnswerSet', docId);
+        
+        // Get the current document data
+        const docSnap = await getDocs(query(collection(db, 'AnswerSet'), where('__name__', '==', docId)));
+        
+        if (docSnap.empty) {
+            console.error('Document not found');
+            return false;
+        }
+        
+        const docData = docSnap.docs[0].data();
+        const answers = docData.answers || [];
+        
+        // Create the updated answers array with secondary taxa values
+        const updatedAnswers = answers.map(answer => {
+            return {
+                ...answer,
+                secondary: {
+                    amphibian: true,
+                    arthropod: true,
+                    lizard: true,
+                    mammal: true,
+                    snake: true,
+                    turtle: true
+                }
+            };
+        });
+        
+        // Update the document
+        await updateDoc(docRef, {
+            answers: updatedAnswers
+        });
+        
+        console.log('Successfully updated secondary taxa values');
+        return true;
+    } catch (error) {
+        console.error('Error updating secondary taxa values:', error);
+        return false;
+    }
+};
+
+
 export {
     getDocsFromCollection,
     addDocToCollection,
